@@ -77,7 +77,7 @@ export default function GalleryManagement() {
   return (
     <div>
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
-        <h2 className="text-2xl font-bold text-white">Manajemen Galeri</h2>
+        <h2 className="text-2xl font-bold text-foreground">Manajemen Galeri</h2>
         <button
           onClick={() => setIsAdding(true)}
           className="flex items-center gap-2 bg-[#ff7a00] hover:bg-[#ff7a00]/90 text-white px-6 py-3 rounded-lg font-semibold transition-colors"
@@ -103,7 +103,7 @@ export default function GalleryManagement() {
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ delay: index * 0.1 }}
-            className="group relative bg-[#1a1a1a] border-2 border-gray-800 rounded-xl overflow-hidden hover:border-[#ff7a00] transition-all"
+            className="group relative bg-card border border-border rounded-xl overflow-hidden hover:border-[#ff7a00] transition-all"
           >
             {/* Image */}
             <div className="aspect-square">
@@ -136,8 +136,8 @@ export default function GalleryManagement() {
 
         {gallery.length === 0 && (
           <div className="col-span-full text-center py-12">
-            <Upload className="mx-auto text-gray-600 mb-4" size={48} />
-            <p className="text-gray-500">Belum ada foto di galeri</p>
+            <Upload className="mx-auto text-muted-foreground mb-4" size={48} />
+            <p className="text-muted-foreground">Belum ada foto di galeri</p>
           </div>
         )}
       </div>
@@ -148,31 +148,31 @@ export default function GalleryManagement() {
           <motion.div
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
-            className="bg-[#1a1a1a] border-2 border-gray-800 rounded-xl p-6 max-w-md w-full"
+            className="bg-card border border-border rounded-xl p-6 max-w-md w-full"
           >
-            <h3 className="text-xl font-bold text-white mb-4">Upload Foto Baru</h3>
+            <h3 className="text-xl font-bold text-foreground mb-4">Upload Foto Baru</h3>
             <div className="space-y-4">
               <div>
-                <label className="block text-white mb-2">Judul Foto</label>
+                <label className="block text-foreground mb-2">Judul Foto</label>
                 <input
                   type="text"
                   value={newImage.title}
                   onChange={(e) => setNewImage({ ...newImage, title: e.target.value })}
                   placeholder="Contoh: Sport Bike Detailing"
-                  className="w-full bg-[#111111] border-2 border-gray-800 rounded-lg px-4 py-3 text-white placeholder-gray-500 focus:border-[#ff7a00] focus:outline-none transition-colors"
+                  className="w-full bg-input-background border border-border rounded-lg px-4 py-3 text-foreground placeholder:text-muted-foreground focus:border-[#ff7a00] focus:outline-none transition-colors"
                 />
               </div>
 
               <div>
-                <label className="block text-white mb-2">URL Gambar</label>
+                <label className="block text-foreground mb-2">URL Gambar</label>
                 <input
                   type="url"
                   value={newImage.url}
                   onChange={(e) => setNewImage({ ...newImage, url: e.target.value })}
                   placeholder="https://images.unsplash.com/..."
-                  className="w-full bg-[#111111] border-2 border-gray-800 rounded-lg px-4 py-3 text-white placeholder-gray-500 focus:border-[#ff7a00] focus:outline-none transition-colors"
+                  className="w-full bg-input-background border border-border rounded-lg px-4 py-3 text-foreground placeholder:text-muted-foreground focus:border-[#ff7a00] focus:outline-none transition-colors"
                 />
-                <p className="text-gray-500 text-xs mt-2">
+                <p className="text-muted-foreground text-xs mt-2">
                   Masukkan URL lengkap gambar dari internet
                 </p>
               </div>
@@ -180,8 +180,8 @@ export default function GalleryManagement() {
               {/* Preview */}
               {newImage.url && (
                 <div>
-                  <label className="block text-white mb-2">Preview</label>
-                  <div className="aspect-square rounded-lg overflow-hidden border border-gray-800">
+                  <label className="block text-foreground mb-2">Preview</label>
+                  <div className="aspect-square rounded-lg overflow-hidden border border-border">
                     <img
                       src={newImage.url}
                       alt="Preview"

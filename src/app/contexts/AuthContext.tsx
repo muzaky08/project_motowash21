@@ -46,12 +46,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const login = (newToken: string, userData: User) => {
     localStorage.setItem('token', newToken);
+    // Persist user profile picture in sessionStorage
+    if (userData.avatar_url) {
+      sessionStorage.setItem('userAvatar', userData.avatar_url);
+      sessionStorage.setItem('userName', userData.name);
+    }
     setToken(newToken);
     setUser(userData);
   };
 
   const logout = () => {
     localStorage.removeItem('token');
+    // Keep avatar in sessionStorage for display after logout
     setToken(null);
     setUser(null);
   };

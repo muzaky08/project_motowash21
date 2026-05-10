@@ -5,6 +5,7 @@ import { Mail, Lock, User, Phone } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "../../contexts/AuthContext";
 import { authService } from "../../../services/api";
+import Logo from "../../components/Logo";
 
 export default function UserAuthPage() {
   const navigate = useNavigate();
@@ -74,15 +75,9 @@ export default function UserAuthPage() {
             initial={{ opacity: 0, scale: 0.8 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ delay: 0.2, duration: 0.6 }}
-            className="flex items-center justify-center space-x-2 mb-4"
+            className="flex items-center justify-center mb-4"
           >
-            <div className="w-12 h-12 bg-[#ff7a00] rounded-lg flex items-center justify-center">
-              <span className="text-white font-bold text-2xl">G</span>
-            </div>
-            <div>
-              <h1 className="text-foreground font-bold text-xl leading-tight">GARASI.21</h1>
-              <p className="text-[#ff7a00] text-sm font-semibold">MOTOWASH</p>
-            </div>
+            <Logo variant="full" />
           </motion.div>
           <h2 className="text-foreground text-2xl font-bold mb-2">
             {isLogin ? "Login" : "Daftar"}

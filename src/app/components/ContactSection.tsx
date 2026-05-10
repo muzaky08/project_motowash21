@@ -95,9 +95,9 @@ export default function ContactSection() {
             {/* WhatsApp Button */}
             <button
               onClick={openWhatsApp}
-              className="w-full bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white rounded-xl p-8 flex flex-col items-center justify-center gap-4 transition-all duration-300 hover:transform hover:scale-105 shadow-lg hover:shadow-green-500/50 mb-6"
+              className="w-full bg-gradient-to-r from-green-900 to-green-600 hover:from-green-800 hover:to-green-800 text-white rounded-xl p-8 flex flex-col items-center justify-center gap-4 transition-all duration-300 hover:transform hover:scale-105 shadow-lg hover:shadow-green-500/50 mb-6"
             >
-              <MessageCircle size={48} />
+              <MessageCircle size={20} />
               <div className="text-center">
                 <p className="font-bold text-xl mb-1">Chat WhatsApp</p>
                 <p className="text-sm opacity-90">Hubungi kami langsung</p>

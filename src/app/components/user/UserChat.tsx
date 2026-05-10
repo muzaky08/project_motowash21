@@ -1,49 +1,185 @@
-import { useState, useEffect, useRef } from "react";
-import { motion, AnimatePresence } from "motion/react";
-import { Send, User as UserIcon, MoreVertical, Phone, Video, Paperclip, Smile } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { AnimatePresence, motion } from "motion/react";
+import {
+  ArrowLeft,
+  MoreVertical,
+  Paperclip,
+  Phone,
+  Search,
+  Send,
+  Smile,
+  User as UserIcon,
+  Video,
+} from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "../../contexts/AuthContext";
 import { chatService } from "../../../services/api";
+import { getSocket } from "../../../services/socket";
 
 const ADMIN_ID = "admin-uuid-1";
 
 export default function UserChat({
   onMessagesRead,
+  standalone = false,
 }: {
   onMessagesRead: () => void;
+  standalone?: boolean;
 }) {
   const { user: currentUser, token } = useAuth();
+  const [conversations, setConversations] = useState<any[]>([]);
   const [messages, setMessages] = useState<any[]>([]);
   const [newMessage, setNewMessage] = useState("");
   const [loading, setLoading] = useState(true);
+  const [roomOpen, setRoomOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [filter, setFilter] = useState<"all" | "unread">("all");
+  const [isAdminTyping, setIsAdminTyping] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const typingTimeoutRef = useRef<number | null>(null);
+
+  const adminConversation = useMemo(() => {
+    const existing = conversations.find((conversation) => conversation.id === ADMIN_ID);
+    return {
+      id: ADMIN_ID,
+      name: "Admin GARASI.21",
+      avatar_url: existing?.avatar_url,
+      last_message: existing?.last_message || "Klik untuk membuka chat admin",
+      last_message_at: existing?.last_message_at,
+      unread_count: Number(existing?.unread_count || 0),
+      is_online: true,
+    };
+  }, [conversations]);
+
+  const visibleConversations = useMemo(() => {
+    const items = [adminConversation].filter((conversation) =>
+      conversation.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (conversation.last_message || "").toLowerCase().includes(searchQuery.toLowerCase()),
+    );
+    return filter === "unread" ? items.filter((conversation) => conversation.unread_count > 0) : items;
+  }, [adminConversation, filter, searchQuery]);
 
   useEffect(() => {
-    loadMessages();
-    onMessagesRead();
-
-    const interval = setInterval(loadMessages, 5000);
-    return () => clearInterval(interval);
+    loadConversations();
+    if ("Notification" in window && Notification.permission === "default") {
+      Notification.requestPermission().catch(() => undefined);
+    }
   }, [token]);
 
   useEffect(() => {
-    scrollToBottom();
+    if (!token || !roomOpen) return;
+    loadMessages();
+  }, [token, roomOpen]);
+
+  useEffect(() => {
+    if (!token) return;
+    const socket = getSocket(token);
+
+    const syncConversation = (message: any, unreadDelta = 0) => {
+      setConversations((prev) => {
+        const others = prev.filter((conversation) => conversation.id !== ADMIN_ID);
+        const previous = prev.find((conversation) => conversation.id === ADMIN_ID);
+        return [
+          {
+            ...(previous || {}),
+            id: ADMIN_ID,
+            name: "Admin GARASI.21",
+            last_message: message.message,
+            last_message_at: message.created_at || new Date().toISOString(),
+            unread_count: Math.max(0, Number(previous?.unread_count || 0) + unreadDelta),
+          },
+          ...others,
+        ];
+      });
+    };
+
+    const handleNewMessage = (message: any) => {
+      if (message.sender_id !== ADMIN_ID || message.receiver_id !== currentUser?.id) return;
+      syncConversation(message, roomOpen ? 0 : 1);
+      if (roomOpen) {
+        setMessages((prev) => (prev.some((item) => item.id === message.id) ? prev : [...prev, message]));
+        onMessagesRead();
+        setConversations((prev) =>
+          prev.map((conversation) =>
+            conversation.id === ADMIN_ID ? { ...conversation, unread_count: 0 } : conversation,
+          ),
+        );
+      }
+      toast.info("Pesan baru dari admin");
+      if (!roomOpen && document.hidden && "Notification" in window && Notification.permission === "granted") {
+        new Notification("Pesan baru GARASI.21", { body: message.message });
+      }
+    };
+
+    const handleSent = (message: any) => {
+      if (message.sender_id !== currentUser?.id || message.receiver_id !== ADMIN_ID) return;
+      syncConversation(message, 0);
+      if (roomOpen) {
+        setMessages((prev) => (prev.some((item) => item.id === message.id) ? prev : [...prev, message]));
+      }
+    };
+
+    const handleTypingStart = ({ userId }: { userId: string }) => {
+      if (userId === ADMIN_ID) setIsAdminTyping(true);
+    };
+
+    const handleTypingStop = ({ userId }: { userId: string }) => {
+      if (userId === ADMIN_ID) setIsAdminTyping(false);
+    };
+
+    socket.on("message:new", handleNewMessage);
+    socket.on("message:sent", handleSent);
+    socket.on("typing:start", handleTypingStart);
+    socket.on("typing:stop", handleTypingStop);
+
+    return () => {
+      socket.off("message:new", handleNewMessage);
+      socket.off("message:sent", handleSent);
+      socket.off("typing:start", handleTypingStart);
+      socket.off("typing:stop", handleTypingStop);
+    };
+  }, [token, currentUser?.id, roomOpen, onMessagesRead]);
+
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
+
+  const loadConversations = async () => {
+    if (!token) return;
+    try {
+      const data = await chatService.getConversations(token);
+      setConversations(data || []);
+    } catch (error) {
+      console.error("Error loading conversations:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const loadMessages = async () => {
     if (!token) return;
     try {
       const data = await chatService.getMessages(ADMIN_ID, token);
-      const newMessages = data.messages || [];
-      if (newMessages.length > messages.length) {
-         onMessagesRead();
-      }
-      setMessages(newMessages);
+      setMessages(data.messages || []);
+      setConversations((prev) =>
+        prev.map((conversation) =>
+          conversation.id === ADMIN_ID ? { ...conversation, unread_count: 0 } : conversation,
+        ),
+      );
+      onMessagesRead();
     } catch (error) {
-      console.error('Error loading messages:', error);
-    } finally {
-      setLoading(false);
+      console.error("Error loading messages:", error);
     }
+  };
+
+  const openRoom = () => {
+    setRoomOpen(true);
+    setSearchQuery("");
+  };
+
+  const closeRoom = () => {
+    setRoomOpen(false);
+    setMessages([]);
+    setNewMessage("");
   };
 
   const sendMessage = async (e: React.FormEvent) => {
@@ -51,151 +187,231 @@ export default function UserChat({
     if (!newMessage.trim() || !token) return;
 
     try {
-      await chatService.sendMessage({
-        receiver_id: ADMIN_ID,
-        message: newMessage,
-      }, token);
-
+      await chatService.sendMessage({ receiver_id: ADMIN_ID, message: newMessage.trim() }, token);
       setNewMessage("");
-      loadMessages();
-    } catch (error: any) {
+    } catch {
       toast.error("Gagal mengirim pesan");
     }
   };
 
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  const handleTyping = (value: string) => {
+    setNewMessage(value);
+    if (!token) return;
+
+    const socket = getSocket(token);
+    socket.emit("typing:start", { receiverId: ADMIN_ID });
+    if (typingTimeoutRef.current) window.clearTimeout(typingTimeoutRef.current);
+    typingTimeoutRef.current = window.setTimeout(() => {
+      socket.emit("typing:stop", { receiverId: ADMIN_ID });
+    }, 800);
+  };
+
+  const formatTime = (value?: string) => {
+    if (!value) return "";
+    return new Date(value).toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" });
   };
 
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
-        <div className="animate-spin rounded-full h-12 w-12 border-4 border-[#ff7a00] border-t-transparent"></div>
+        <div className="h-12 w-12 animate-spin rounded-full border-4 border-[#ff7a00] border-t-transparent" />
       </div>
     );
   }
 
   return (
-    <div className="max-w-4xl mx-auto bg-card border border-border rounded-xl h-[650px] flex flex-col overflow-hidden shadow-2xl relative">
-      {/* Header - WhatsApp Style */}
-      <div className="p-3 bg-muted border-b border-border flex items-center justify-between sticky top-0 z-10">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-[#ff7a00] rounded-full flex items-center justify-center text-white font-bold text-xl shadow-inner">
-            A
-          </div>
-          <div>
-            <h2 className="font-bold text-foreground text-sm">Admin GARASI.21</h2>
-            <p className="text-[10px] text-green-500 font-semibold flex items-center gap-1">
-              <span className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse"></span>
-              online
-            </p>
-          </div>
-        </div>
-        <div className="flex items-center gap-4 text-muted-foreground">
-          <Video size={20} className="cursor-not-allowed opacity-50" />
-          <Phone size={18} className="cursor-not-allowed opacity-50" />
-          <MoreVertical size={20} className="cursor-pointer" />
-        </div>
-      </div>
-
-      {/* Messages Area - WhatsApp Pattern Background */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-2 bg-[#efeae2] dark:bg-[#0b141a] bg-[url('https://user-images.githubusercontent.com/15075759/28719144-86dc0f70-73b1-11e7-911d-60d70fcded21.png')] bg-repeat">
-        <div className="flex justify-center mb-4">
-          <span className="bg-muted/80 dark:bg-[#182229] text-muted-foreground text-[10px] px-2 py-1 rounded-md shadow-sm uppercase font-bold tracking-wider">
-            Hari Ini
-          </span>
-        </div>
-
-        <AnimatePresence initial={false}>
-          {messages.length === 0 ? (
-            <div className="flex flex-col items-center justify-center h-full text-muted-foreground space-y-2 opacity-50">
-              <UserIcon size={48} />
-              <p className="text-sm">Mulai percakapan dengan admin</p>
+    <div
+      className={`${standalone ? "max-w-4xl h-[calc(100vh-7rem)]" : "max-w-4xl h-[650px]"} mx-auto overflow-hidden rounded-xl border border-border bg-card shadow-2xl`}
+    >
+      {!roomOpen ? (
+        <div className="flex h-full flex-col bg-card">
+          <div className="border-b border-border bg-card p-4 sm:p-6">
+            <div className="flex items-center justify-between gap-3">
+              <h2 className="text-2xl font-bold text-foreground sm:text-3xl">Chat</h2>
+              <button className="rounded-full p-2 text-muted-foreground hover:bg-muted" aria-label="Menu chat">
+                <MoreVertical size={22} />
+              </button>
             </div>
-          ) : (
-            messages.map((msg) => {
-              const isMine = msg.sender_id === currentUser?.id;
+            <div className="relative mt-4">
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground" size={20} />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Cari chat"
+                className="w-full rounded-full border border-border bg-muted px-12 py-3 text-sm text-foreground outline-none focus:border-[#ff7a00]"
+              />
+            </div>
+            <div className="mt-4 flex gap-2 overflow-x-auto">
+              <button
+                type="button"
+                onClick={() => setFilter("all")}
+                className={`rounded-full px-4 py-2 text-sm font-semibold transition-colors ${
+                  filter === "all" ? "bg-[#ff7a00] text-white" : "bg-muted text-muted-foreground"
+                }`}
+              >
+                Semua
+              </button>
+              <button
+                type="button"
+                onClick={() => setFilter("unread")}
+                className={`rounded-full px-4 py-2 text-sm font-semibold transition-colors ${
+                  filter === "unread" ? "bg-[#ff7a00] text-white" : "bg-muted text-muted-foreground"
+                }`}
+              >
+                Belum dibaca
+              </button>
+            </div>
+          </div>
 
-              return (
-                <motion.div
-                  key={msg.id}
-                  initial={{ opacity: 0, scale: 0.95 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  className={`flex ${isMine ? "justify-end" : "justify-start"}`}
+          <div className="flex-1 overflow-y-auto">
+            {visibleConversations.length === 0 ? (
+              <div className="flex h-full flex-col items-center justify-center gap-3 p-8 text-center text-muted-foreground">
+                <UserIcon size={44} />
+                <p>Belum ada chat yang cocok.</p>
+              </div>
+            ) : (
+              visibleConversations.map((conversation) => (
+                <button
+                  key={conversation.id}
+                  type="button"
+                  onClick={openRoom}
+                  className="flex w-full items-center gap-3 border-b border-border/60 px-4 py-4 text-left transition-colors hover:bg-muted/70 sm:px-6"
                 >
-                  <div
-                    className={`max-w-[85%] px-3 py-1.5 rounded-lg shadow-sm relative ${
-                      isMine
-                        ? "bg-[#d9fdd3] dark:bg-[#005c4b] text-[#111b21] dark:text-[#e9edef] rounded-tr-none"
-                        : "bg-white dark:bg-[#202c33] text-[#111b21] dark:text-[#e9edef] rounded-tl-none"
-                    }`}
-                  >
-                    <p className="text-sm whitespace-pre-wrap">{msg.message}</p>
-                    <div className="flex items-center justify-end gap-1 mt-0.5">
-                      <span className="text-[9px] opacity-60">
-                        {new Date(msg.created_at).toLocaleTimeString('id-ID', {
-                          hour: '2-digit',
-                          minute: '2-digit',
-                        })}
+                  <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-[#ff7a00] text-lg font-bold text-white">
+                    A
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center justify-between gap-3">
+                      <p className="truncate font-bold text-foreground">{conversation.name}</p>
+                      <span
+                        className={`shrink-0 text-xs ${
+                          conversation.unread_count > 0 ? "font-bold text-green-500" : "text-muted-foreground"
+                        }`}
+                      >
+                        {formatTime(conversation.last_message_at)}
                       </span>
-                      {isMine && (
-                        <span className="text-[#53bdeb]">
-                          <svg viewBox="0 0 16 11" width="16" height="11" fill="currentColor">
-                            <path d="M15.01 3.316l-.478-.372a.365.365 0 00-.51.063L8.666 9.88a.32.32 0 01-.484.032l-.358-.325a.32.32 0 00-.484.032l-.378.48a.418.418 0 00.036.54l1.32 1.267a.32.32 0 00.484-.034l6.272-8.048a.366.366 0 00-.064-.512zm-4.1 0l-.478-.372a.365.365 0 00-.51.063L5.066 9.88a.32.32 0 01-.484.032L1.332 7.027a.366.366 0 00-.511.064l-.44.556a.418.418 0 00.067.545l4.315 3.513a.32.32 0 00.484-.034l6.271-8.048a.366.366 0 00-.063-.512z"></path>
-                          </svg>
+                    </div>
+                    <div className="mt-1 flex items-center justify-between gap-3">
+                      <p className="truncate text-sm text-muted-foreground">
+                        {isAdminTyping ? "sedang mengetik..." : conversation.last_message}
+                      </p>
+                      {conversation.unread_count > 0 && (
+                        <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-green-500 px-1.5 text-[11px] font-bold text-white">
+                          {conversation.unread_count > 99 ? "99+" : conversation.unread_count}
                         </span>
                       )}
                     </div>
                   </div>
-                </motion.div>
-              );
-            })
-          )}
-        </AnimatePresence>
-        <div ref={messagesEndRef} />
-      </div>
-
-      {/* Input Area - WhatsApp Style */}
-      <div className="p-2 bg-muted flex items-center gap-2 sticky bottom-0 border-t border-border/50">
-        <div className="flex items-center gap-1 text-muted-foreground">
-          <button className="p-2 hover:bg-muted-foreground/10 rounded-full transition-colors">
-            <Smile size={24} />
-          </button>
-          <button className="p-2 hover:bg-muted-foreground/10 rounded-full transition-colors">
-            <Paperclip size={22} className="rotate-45" />
-          </button>
+                </button>
+              ))
+            )}
+          </div>
         </div>
-        <form onSubmit={sendMessage} className="flex-1 flex gap-2">
-          <input
-            type="text"
-            value={newMessage}
-            onChange={(e) => setNewMessage(e.target.value)}
-            placeholder="Ketik pesan"
-            className="flex-1 bg-background dark:bg-[#2a3942] border-none rounded-lg px-4 py-2.5 text-sm focus:outline-none placeholder:text-muted-foreground"
-          />
-          <button
-            type="submit"
-            disabled={!newMessage.trim()}
-            className={`p-2.5 rounded-full transition-all ${
-              newMessage.trim() 
-                ? "bg-[#ff7a00] text-white shadow-lg scale-110" 
-                : "text-muted-foreground opacity-50"
-            }`}
-          >
-            <Send size={20} />
-          </button>
-        </form>
-      </div>
+      ) : (
+        <div className="flex h-full flex-col bg-[#efeae2] dark:bg-[#0b141a]">
+          <div className="sticky top-0 z-10 flex items-center justify-between border-b border-border bg-card p-3">
+            <div className="flex min-w-0 items-center gap-3">
+              <button
+                type="button"
+                onClick={closeRoom}
+                className="rounded-full p-2 text-muted-foreground hover:bg-muted"
+                aria-label="Kembali ke daftar chat"
+              >
+                <ArrowLeft size={22} />
+              </button>
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#ff7a00] text-lg font-bold text-white">
+                A
+              </div>
+              <div className="min-w-0">
+                <h2 className="truncate text-sm font-bold text-foreground">Admin GARASI.21</h2>
+                <p className="flex items-center gap-1 text-[10px] font-semibold text-green-500">
+                  <span className="h-1.5 w-1.5 rounded-full bg-green-500" />
+                  {isAdminTyping ? "sedang mengetik..." : "online"}
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-3 text-muted-foreground">
+              <Video size={20} className="opacity-50" />
+              <Phone size={18} className="opacity-50" />
+              <MoreVertical size={20} />
+            </div>
+          </div>
 
-      {/* Mobile Floating Backdrop for encrypt label */}
-      <div className="absolute bottom-16 left-1/2 -translate-x-1/2 pointer-events-none">
-        <div className="bg-white/50 dark:bg-black/20 backdrop-blur-md px-3 py-1 rounded-full text-[9px] uppercase tracking-tighter text-muted-foreground/60 font-bold flex items-center gap-1">
-          <svg viewBox="0 0 24 24" width="10" height="10" fill="currentColor">
-            <path d="M12 2C6.477 2 2 6.477 2 12c0 1.891.524 3.655 1.438 5.161L2.031 22l4.977-1.378A9.957 9.957 0 0012 22c5.523 0 10-4.477 10-10S17.523 2 12 2zm0 18c-1.477 0-2.871-.351-4.102-.973l-.294-.148-3.044.843.857-2.955-.164-.271A7.954 7.954 0 014 12c0-4.411 3.589-8 8-8s8 3.589 8 8-3.589 8-8 8z"/>
-          </svg>
-          Pesan Terenkripsi
+          <div className="flex-1 space-y-2 overflow-y-auto bg-[url('https://user-images.githubusercontent.com/15075759/28719144-86dc0f70-73b1-11e7-911d-60d70fcded21.png')] bg-repeat p-4">
+            <div className="mb-4 flex justify-center">
+              <span className="rounded-md bg-muted/90 px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-muted-foreground shadow-sm">
+                Hari Ini
+              </span>
+            </div>
+
+            <AnimatePresence initial={false}>
+              {messages.length === 0 ? (
+                <div className="flex h-full flex-col items-center justify-center gap-2 text-muted-foreground opacity-70">
+                  <UserIcon size={48} />
+                  <p className="text-sm">Mulai percakapan dengan admin</p>
+                </div>
+              ) : (
+                messages.map((msg) => {
+                  const isMine = msg.sender_id === currentUser?.id;
+                  return (
+                    <motion.div
+                      key={msg.id}
+                      initial={{ opacity: 0, scale: 0.95 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      className={`flex ${isMine ? "justify-end" : "justify-start"}`}
+                    >
+                      <div
+                        className={`max-w-[85%] rounded-lg px-3 py-1.5 shadow-sm ${
+                          isMine
+                            ? "rounded-tr-none bg-[#d9fdd3] text-[#111b21] dark:bg-[#005c4b] dark:text-[#e9edef]"
+                            : "rounded-tl-none bg-white text-[#111b21] dark:bg-[#202c33] dark:text-[#e9edef]"
+                        }`}
+                      >
+                        <p className="whitespace-pre-wrap text-sm">{msg.message}</p>
+                        <div className="mt-0.5 flex items-center justify-end gap-1">
+                          <span className="text-[9px] opacity-60">{formatTime(msg.created_at)}</span>
+                          {isMine && <span className="text-xs text-[#53bdeb]">✓✓</span>}
+                        </div>
+                      </div>
+                    </motion.div>
+                  );
+                })
+              )}
+            </AnimatePresence>
+            <div ref={messagesEndRef} />
+          </div>
+
+          <div className="sticky bottom-0 flex items-center gap-2 border-t border-border/50 bg-card p-2">
+            <div className="flex items-center gap-1 text-muted-foreground">
+              <button className="rounded-full p-2 hover:bg-muted" type="button">
+                <Smile size={23} />
+              </button>
+              <button className="rounded-full p-2 hover:bg-muted" type="button">
+                <Paperclip size={21} className="rotate-45" />
+              </button>
+            </div>
+            <form onSubmit={sendMessage} className="flex flex-1 gap-2">
+              <input
+                type="text"
+                value={newMessage}
+                onChange={(e) => handleTyping(e.target.value)}
+                placeholder="Ketik pesan"
+                className="flex-1 rounded-full border-none bg-muted px-4 py-2.5 text-sm text-foreground outline-none placeholder:text-muted-foreground"
+              />
+              <button
+                type="submit"
+                disabled={!newMessage.trim()}
+                className={`rounded-full p-2.5 transition-all ${
+                  newMessage.trim() ? "bg-[#ff7a00] text-white shadow-lg" : "text-muted-foreground opacity-50"
+                }`}
+              >
+                <Send size={20} />
+              </button>
+            </form>
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }

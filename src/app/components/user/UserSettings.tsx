@@ -5,7 +5,7 @@ import { toast } from "sonner";
 import { useAuth } from "../../contexts/AuthContext";
 import { userService } from "../../../services/api";
 
-export default function UserSettings() {
+export default function UserSettings({ hideTitle = false }: { hideTitle?: boolean }) {
   const { user, token, updateUser } = useAuth();
   const [loading, setLoading] = useState(false);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
@@ -82,26 +82,26 @@ export default function UserSettings() {
 
   return (
     <div className="space-y-6 max-w-3xl">
-      <h2 className="text-2xl font-bold text-foreground">Pengaturan Akun</h2>
+      {!hideTitle && <h2 className="text-xl sm:text-2xl font-bold text-foreground">Pengaturan Akun</h2>}
 
       {/* Profile Picture */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="bg-card border border-border rounded-xl p-6"
+        className="bg-card border border-border rounded-xl p-4 sm:p-6"
       >
-        <h3 className="text-lg font-semibold text-foreground mb-4">Foto Profil</h3>
-        <div className="flex items-center gap-6">
+        <h3 className="text-base sm:text-lg font-semibold text-foreground mb-4">Foto Profil</h3>
+        <div className="flex flex-col sm:flex-row items-center sm:items-start gap-4 sm:gap-6">
           <div className="relative">
             {profile.avatar_url ? (
               <img
                 src={profile.avatar_url}
                 alt="Avatar"
-                className="w-24 h-24 rounded-full object-cover"
+                className="w-20 h-20 sm:w-24 sm:h-24 rounded-full object-cover"
               />
             ) : (
-              <div className="w-24 h-24 rounded-full bg-[#ff7a00] flex items-center justify-center">
-                <User className="text-white" size={40} />
+              <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-full bg-[#ff7a00] flex items-center justify-center">
+                <User className="text-white" size={32} />
               </div>
             )}
             {uploadingAvatar && (
@@ -110,8 +110,8 @@ export default function UserSettings() {
               </div>
             )}
           </div>
-          <div>
-            <label className="cursor-pointer bg-[#ff7a00] hover:bg-[#ff7a00]/90 text-white px-4 py-2 rounded-lg inline-flex items-center gap-2 transition-colors">
+          <div className="text-center sm:text-left">
+            <label className="cursor-pointer bg-[#ff7a00] hover:bg-[#ff7a00]/90 text-white px-4 py-2 rounded-lg inline-flex items-center gap-2 transition-colors text-sm sm:text-base">
               <Camera size={18} />
               Upload Foto
               <input
@@ -134,12 +134,12 @@ export default function UserSettings() {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.1 }}
-        className="bg-card border border-border rounded-xl p-6"
+        className="bg-card border border-border rounded-xl p-4 sm:p-6"
       >
-        <h3 className="text-lg font-semibold text-foreground mb-4">Informasi Profil</h3>
+        <h3 className="text-base sm:text-lg font-semibold text-foreground mb-4">Informasi Profil</h3>
         <form onSubmit={handleProfileUpdate} className="space-y-4">
           <div>
-            <label className="block text-foreground font-semibold mb-2 flex items-center gap-2">
+            <label className="block text-foreground font-semibold mb-2 flex items-center gap-2 text-sm sm:text-base">
               <User size={16} className="text-[#ff7a00]" />
               Nama Lengkap
             </label>
@@ -147,12 +147,12 @@ export default function UserSettings() {
               type="text"
               value={profile.name}
               onChange={(e) => setProfile({ ...profile, name: e.target.value })}
-              className="w-full bg-input-background border border-border rounded-lg px-4 py-2 text-foreground"
+              className="w-full bg-input-background border border-border rounded-lg px-4 py-2 text-foreground text-sm sm:text-base"
             />
           </div>
 
           <div>
-            <label className="block text-foreground font-semibold mb-2 flex items-center gap-2">
+            <label className="block text-foreground font-semibold mb-2 flex items-center gap-2 text-sm sm:text-base">
               <Mail size={16} className="text-[#ff7a00]" />
               Email
             </label>
@@ -160,13 +160,13 @@ export default function UserSettings() {
               type="email"
               value={profile.email}
               disabled
-              className="w-full bg-muted border border-border rounded-lg px-4 py-2 text-muted-foreground cursor-not-allowed"
+              className="w-full bg-muted border border-border rounded-lg px-4 py-2 text-muted-foreground cursor-not-allowed text-sm sm:text-base"
             />
             <p className="text-xs text-muted-foreground mt-1">Email tidak dapat diubah</p>
           </div>
 
           <div>
-            <label className="block text-foreground font-semibold mb-2 flex items-center gap-2">
+            <label className="block text-foreground font-semibold mb-2 flex items-center gap-2 text-sm sm:text-base">
               <Phone size={16} className="text-[#ff7a00]" />
               No. WhatsApp
             </label>
@@ -174,12 +174,12 @@ export default function UserSettings() {
               type="tel"
               value={profile.phone}
               onChange={(e) => setProfile({ ...profile, phone: e.target.value })}
-              className="w-full bg-input-background border border-border rounded-lg px-4 py-2 text-foreground"
+              className="w-full bg-input-background border border-border rounded-lg px-4 py-2 text-foreground text-sm sm:text-base"
             />
           </div>
 
           <div>
-            <label className="block text-foreground font-semibold mb-2 flex items-center gap-2">
+            <label className="block text-foreground font-semibold mb-2 flex items-center gap-2 text-sm sm:text-base">
               <MapPin size={16} className="text-[#ff7a00]" />
               Lokasi
             </label>
@@ -188,14 +188,14 @@ export default function UserSettings() {
               value={profile.location}
               onChange={(e) => setProfile({ ...profile, location: e.target.value })}
               placeholder="Contoh: Kota Serang, Banten"
-              className="w-full bg-input-background border border-border rounded-lg px-4 py-2 text-foreground"
+              className="w-full bg-input-background border border-border rounded-lg px-4 py-2 text-foreground text-sm sm:text-base"
             />
           </div>
 
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-[#ff7a00] hover:bg-[#ff7a00]/90 text-white px-6 py-3 rounded-lg font-semibold flex items-center justify-center gap-2 disabled:opacity-50"
+            className="w-full bg-[#ff7a00] hover:bg-[#ff7a00]/90 text-white px-6 py-3 rounded-lg font-semibold flex items-center justify-center gap-2 disabled:opacity-50 text-sm sm:text-base"
           >
             <Save size={18} />
             {loading ? "Menyimpan..." : "Simpan Perubahan"}
@@ -208,12 +208,12 @@ export default function UserSettings() {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.2 }}
-        className="bg-card border border-border rounded-xl p-6"
+        className="bg-card border border-border rounded-xl p-4 sm:p-6"
       >
-        <h3 className="text-lg font-semibold text-foreground mb-4">Ubah Password</h3>
+        <h3 className="text-base sm:text-lg font-semibold text-foreground mb-4">Ubah Password</h3>
         <form onSubmit={handlePasswordChange} className="space-y-4">
           <div>
-            <label className="block text-foreground font-semibold mb-2 flex items-center gap-2">
+            <label className="block text-foreground font-semibold mb-2 flex items-center gap-2 text-sm sm:text-base">
               <Lock size={16} className="text-[#ff7a00]" />
               Password Baru
             </label>
@@ -222,12 +222,12 @@ export default function UserSettings() {
               value={passwordData.newPassword}
               onChange={(e) => setPasswordData({ ...passwordData, newPassword: e.target.value })}
               placeholder="Minimal 6 karakter"
-              className="w-full bg-input-background border border-border rounded-lg px-4 py-2 text-foreground"
+              className="w-full bg-input-background border border-border rounded-lg px-4 py-2 text-foreground text-sm sm:text-base"
             />
           </div>
 
           <div>
-            <label className="block text-foreground font-semibold mb-2 flex items-center gap-2">
+            <label className="block text-foreground font-semibold mb-2 flex items-center gap-2 text-sm sm:text-base">
               <Lock size={16} className="text-[#ff7a00]" />
               Konfirmasi Password Baru
             </label>
@@ -236,13 +236,13 @@ export default function UserSettings() {
               value={passwordData.confirmPassword}
               onChange={(e) => setPasswordData({ ...passwordData, confirmPassword: e.target.value })}
               placeholder="Ketik ulang password baru"
-              className="w-full bg-input-background border border-border rounded-lg px-4 py-2 text-foreground"
+              className="w-full bg-input-background border border-border rounded-lg px-4 py-2 text-foreground text-sm sm:text-base"
             />
           </div>
 
           <button
             type="submit"
-            className="w-full bg-[#ff7a00] hover:bg-[#ff7a00]/90 text-white px-6 py-3 rounded-lg font-semibold"
+            className="w-full bg-[#ff7a00] hover:bg-[#ff7a00]/90 text-white px-6 py-3 rounded-lg font-semibold text-sm sm:text-base"
           >
             Ubah Password
           </button>

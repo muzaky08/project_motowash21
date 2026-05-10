@@ -1,4 +1,5 @@
 import { Heart } from "lucide-react";
+import Logo from "./Logo";
 
 export default function Footer() {
   return (
@@ -6,14 +7,8 @@ export default function Footer() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Logo and Tagline */}
         <div className="text-center mb-8">
-          <div className="flex items-center justify-center space-x-2 mb-4">
-            <div className="w-10 h-10 bg-[#ff7a00] rounded-lg flex items-center justify-center">
-              <span className="text-white font-bold text-xl">G</span>
-            </div>
-            <div>
-              <h3 className="text-gray-900 dark:text-white font-bold text-lg leading-tight">GARASI.21</h3>
-              <p className="text-[#ff7a00] text-xs font-semibold">MOTOWASH</p>
-            </div>
+          <div className="flex items-center justify-center mb-4">
+            <Logo variant="full" />
           </div>
           <p className="text-gray-600 dark:text-gray-400 max-w-md mx-auto">
             Thank you sudah memilih kami sebagai spesialis cuci motor.

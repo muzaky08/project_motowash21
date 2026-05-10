@@ -4,6 +4,7 @@ const notificationController = require('../controllers/notificationController');
 const { auth } = require('../middleware/auth');
 
 router.get('/', auth, notificationController.getUserNotifications);
+router.patch('/read-all', auth, notificationController.markAllAsRead);
 router.patch('/:id/read', auth, notificationController.markAsRead);
 
 module.exports = router;

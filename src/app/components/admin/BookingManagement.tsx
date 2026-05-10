@@ -1,175 +1,201 @@
 import { useState, useEffect } from "react";
 import { motion } from "motion/react";
-import { Trash2, Edit, Search, Filter } from "lucide-react";
+import { Search, Filter, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
+import { useAuth } from "../../contexts/AuthContext";
+import { bookingService } from "../../../services/api";
+import { getSocket } from "../../../services/socket";
 
 interface Booking {
-  id: number;
+  id: string;
   name: string;
   phone: string;
-  bikeSize: string;
+  bike_size: string;
   service: string;
   date: string;
   time: string;
   status: string;
-  createdAt: string;
+  created_at: string;
+  updated_at?: string;
 }
 
+const statuses = ["Menunggu", "Dikonfirmasi", "Sedang Proses", "Selesai", "Dibatalkan"];
+
 export default function BookingManagement() {
+  const { token } = useAuth();
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [filteredBookings, setFilteredBookings] = useState<Booking[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [filterStatus, setFilterStatus] = useState("all");
-  const [editingId, setEditingId] = useState<number | null>(null);
-  const [editData, setEditData] = useState<Booking | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [updatingId, setUpdatingId] = useState<string | null>(null);
 
   useEffect(() => {
     loadBookings();
-  }, []);
+  }, [token]);
+
+  useEffect(() => {
+    if (!token) return;
+    const socket = getSocket(token);
+    const reload = () => loadBookings();
+
+    socket.on("booking:created", reload);
+    socket.on("booking:updated", reload);
+
+    return () => {
+      socket.off("booking:created", reload);
+      socket.off("booking:updated", reload);
+    };
+  }, [token]);
 
   useEffect(() => {
     filterBookings();
   }, [bookings, searchTerm, filterStatus]);
 
-  const loadBookings = () => {
-    const data = JSON.parse(localStorage.getItem("bookings") || "[]");
-    setBookings(data);
+  const loadBookings = async () => {
+    if (!token) return;
+    try {
+      setLoading(true);
+      const data = await bookingService.getAllBookings(token);
+      setBookings(data || []);
+    } catch (error: any) {
+      console.error("Error loading admin bookings:", error);
+      toast.error(error.message || "Gagal memuat booking customer");
+    } finally {
+      setLoading(false);
+    }
   };
 
   const filterBookings = () => {
     let filtered = [...bookings];
 
-    // Search filter
     if (searchTerm) {
+      const keyword = searchTerm.toLowerCase();
       filtered = filtered.filter(
-        (b) =>
-          b.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          b.phone.includes(searchTerm)
+        (booking) =>
+          booking.name.toLowerCase().includes(keyword) ||
+          booking.phone.includes(searchTerm) ||
+          booking.service.toLowerCase().includes(keyword),
       );
     }
 
-    // Status filter
     if (filterStatus !== "all") {
-      filtered = filtered.filter((b) => b.status === filterStatus);
+      filtered = filtered.filter((booking) => booking.status === filterStatus);
     }
 
     setFilteredBookings(filtered);
   };
 
-  const handleDelete = (id: number) => {
-    if (confirm("Yakin ingin menghapus booking ini?")) {
-      const updated = bookings.filter((b) => b.id !== id);
-      localStorage.setItem("bookings", JSON.stringify(updated));
-      setBookings(updated);
-      toast.success("Booking berhasil dihapus!");
+  const handleStatusChange = async (id: string, status: string) => {
+    if (!token) return;
+    setUpdatingId(id);
+    try {
+      await bookingService.updateBookingStatus(id, status, token);
+      setBookings((prev) =>
+        prev.map((booking) =>
+          booking.id === id ? { ...booking, status, updated_at: new Date().toISOString() } : booking,
+        ),
+      );
+      toast.success(`Status booking diubah menjadi ${status}`);
+    } catch (error: any) {
+      toast.error(error.message || "Gagal mengubah status booking");
+    } finally {
+      setUpdatingId(null);
     }
-  };
-
-  const handleEdit = (booking: Booking) => {
-    setEditingId(booking.id);
-    setEditData({ ...booking });
-  };
-
-  const handleSaveEdit = () => {
-    if (!editData) return;
-
-    const updated = bookings.map((b) => (b.id === editingId ? editData : b));
-    localStorage.setItem("bookings", JSON.stringify(updated));
-    setBookings(updated);
-    setEditingId(null);
-    setEditData(null);
-    toast.success("Booking berhasil diupdate!");
-  };
-
-  const handleStatusChange = (id: number, status: string) => {
-    const updated = bookings.map((b) => (b.id === id ? { ...b, status } : b));
-    localStorage.setItem("bookings", JSON.stringify(updated));
-    setBookings(updated);
-    toast.success(`Status diubah menjadi ${status}`);
   };
 
   const getStatusColor = (status: string) => {
     switch (status) {
       case "Menunggu":
-        return "bg-yellow-500/20 text-yellow-500 border-yellow-500/50";
-      case "Diproses":
-        return "bg-blue-500/20 text-blue-500 border-blue-500/50";
+        return "bg-yellow-500/15 text-yellow-600 dark:text-yellow-400 border-yellow-500/40";
+      case "Dikonfirmasi":
+        return "bg-blue-500/15 text-blue-600 dark:text-blue-400 border-blue-500/40";
+      case "Sedang Proses":
+        return "bg-purple-500/15 text-purple-600 dark:text-purple-400 border-purple-500/40";
       case "Selesai":
-        return "bg-green-500/20 text-green-500 border-green-500/50";
+        return "bg-green-500/15 text-green-600 dark:text-green-400 border-green-500/40";
+      case "Dibatalkan":
+        return "bg-red-500/15 text-red-600 dark:text-red-400 border-red-500/40";
       default:
-        return "bg-gray-500/20 text-gray-500 border-gray-500/50";
+        return "bg-muted text-muted-foreground border-border";
     }
   };
 
   return (
     <div>
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
-        <h2 className="text-2xl font-bold text-white">Manajemen Booking</h2>
-        <div className="text-gray-400">
-          Total: <span className="text-[#ff7a00] font-bold">{filteredBookings.length}</span> booking
+        <div>
+          <h2 className="text-2xl font-bold text-foreground">Manajemen Booking</h2>
+          <p className="text-sm text-muted-foreground">
+            Menampilkan booking yang masuk dari user/customer.
+          </p>
+        </div>
+        <div className="flex items-center gap-3">
+          <div className="text-muted-foreground">
+            Total: <span className="text-[#ff7a00] font-bold">{filteredBookings.length}</span> booking
+          </div>
+          <button
+            type="button"
+            onClick={loadBookings}
+            className="inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-border bg-card text-foreground hover:bg-muted transition-colors"
+          >
+            <RefreshCw size={16} className={loading ? "animate-spin" : ""} />
+            Refresh
+          </button>
         </div>
       </div>
 
-      {/* Filters */}
       <div className="mb-6 grid sm:grid-cols-2 gap-4">
-        {/* Search */}
         <div className="relative">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500" size={20} />
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground" size={20} />
           <input
             type="text"
-            placeholder="Cari nama atau nomor telepon..."
+            placeholder="Cari nama, nomor telepon, atau layanan..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full bg-[#1a1a1a] border-2 border-gray-800 rounded-lg pl-10 pr-4 py-3 text-white placeholder-gray-500 focus:border-[#ff7a00] focus:outline-none transition-colors"
+            className="w-full bg-input-background border border-border rounded-lg pl-10 pr-4 py-3 text-foreground placeholder:text-muted-foreground focus:border-[#ff7a00] focus:outline-none transition-colors"
           />
         </div>
 
-        {/* Status Filter */}
         <div className="relative">
-          <Filter className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500" size={20} />
+          <Filter className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground" size={20} />
           <select
             value={filterStatus}
             onChange={(e) => setFilterStatus(e.target.value)}
-            className="w-full bg-[#1a1a1a] border-2 border-gray-800 rounded-lg pl-10 pr-4 py-3 text-white focus:border-[#ff7a00] focus:outline-none transition-colors appearance-none"
+            className="w-full bg-input-background border border-border rounded-lg pl-10 pr-4 py-3 text-foreground focus:border-[#ff7a00] focus:outline-none transition-colors appearance-none"
           >
             <option value="all">Semua Status</option>
-            <option value="Menunggu">Menunggu</option>
-            <option value="Diproses">Diproses</option>
-            <option value="Selesai">Selesai</option>
+            {statuses.map((status) => (
+              <option key={status} value={status}>
+                {status}
+              </option>
+            ))}
           </select>
         </div>
       </div>
 
-      {/* Bookings Table */}
-      <div className="bg-[#1a1a1a] border-2 border-gray-800 rounded-xl overflow-hidden">
+      <div className="bg-card border border-border rounded-xl overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full">
-            <thead className="bg-[#111111] border-b border-gray-800">
+            <thead className="bg-muted border-b border-border">
               <tr>
-                <th className="px-4 py-4 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">
-                  Pelanggan
-                </th>
-                <th className="px-4 py-4 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">
-                  Motor
-                </th>
-                <th className="px-4 py-4 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">
-                  Layanan
-                </th>
-                <th className="px-4 py-4 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">
-                  Jadwal
-                </th>
-                <th className="px-4 py-4 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">
-                  Status
-                </th>
-                <th className="px-4 py-4 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">
-                  Aksi
-                </th>
+                {["Pelanggan", "Motor", "Layanan", "Jadwal", "Status", "Dibuat"].map((heading) => (
+                  <th key={heading} className="px-4 py-4 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                    {heading}
+                  </th>
+                ))}
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-800">
-              {filteredBookings.length === 0 ? (
+            <tbody className="divide-y divide-border">
+              {loading ? (
                 <tr>
-                  <td colSpan={6} className="px-4 py-8 text-center text-gray-500">
+                  <td colSpan={6} className="px-4 py-10 text-center text-muted-foreground">
+                    Memuat booking customer...
+                  </td>
+                </tr>
+              ) : filteredBookings.length === 0 ? (
+                <tr>
+                  <td colSpan={6} className="px-4 py-10 text-center text-muted-foreground">
                     Tidak ada booking ditemukan
                   </td>
                 </tr>
@@ -179,56 +205,46 @@ export default function BookingManagement() {
                     key={booking.id}
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
-                    className="hover:bg-[#222222] transition-colors"
+                    className="hover:bg-muted/50 transition-colors"
                   >
                     <td className="px-4 py-4">
                       <div>
-                        <p className="text-white font-semibold">{booking.name}</p>
-                        <p className="text-gray-400 text-sm">{booking.phone}</p>
+                        <p className="text-foreground font-semibold">{booking.name}</p>
+                        <p className="text-muted-foreground text-sm">{booking.phone}</p>
                       </div>
                     </td>
                     <td className="px-4 py-4">
-                      <span className="text-[#ff7a00] font-semibold">{booking.bikeSize}</span>
+                      <span className="text-[#ff7a00] font-semibold">{booking.bike_size}</span>
                     </td>
                     <td className="px-4 py-4">
-                      <span className="text-white">{booking.service}</span>
+                      <span className="text-foreground">{booking.service}</span>
                     </td>
                     <td className="px-4 py-4">
                       <div>
-                        <p className="text-white">{booking.date}</p>
-                        <p className="text-gray-400 text-sm">{booking.time} WIB</p>
+                        <p className="text-foreground">{booking.date}</p>
+                        <p className="text-muted-foreground text-sm">{booking.time} WIB</p>
                       </div>
                     </td>
                     <td className="px-4 py-4">
                       <select
                         value={booking.status}
+                        disabled={updatingId === booking.id}
                         onChange={(e) => handleStatusChange(booking.id, e.target.value)}
                         className={`px-3 py-1 rounded-full text-xs font-semibold border ${getStatusColor(
-                          booking.status
-                        )} bg-transparent focus:outline-none`}
+                          booking.status,
+                        )} bg-transparent focus:outline-none disabled:opacity-60`}
                       >
-                        <option value="Menunggu">Menunggu</option>
-                        <option value="Diproses">Diproses</option>
-                        <option value="Selesai">Selesai</option>
+                        {statuses.map((status) => (
+                          <option key={status} value={status}>
+                            {status}
+                          </option>
+                        ))}
                       </select>
                     </td>
                     <td className="px-4 py-4">
-                      <div className="flex items-center gap-2">
-                        <button
-                          onClick={() => handleEdit(booking)}
-                          className="p-2 bg-blue-500/20 hover:bg-blue-500/30 text-blue-500 rounded-lg transition-colors"
-                          title="Edit"
-                        >
-                          <Edit size={16} />
-                        </button>
-                        <button
-                          onClick={() => handleDelete(booking.id)}
-                          className="p-2 bg-red-500/20 hover:bg-red-500/30 text-red-500 rounded-lg transition-colors"
-                          title="Hapus"
-                        >
-                          <Trash2 size={16} />
-                        </button>
-                      </div>
+                      <p className="text-muted-foreground text-sm">
+                        {new Date(booking.created_at).toLocaleString("id-ID")}
+                      </p>
                     </td>
                   </motion.tr>
                 ))
@@ -237,86 +253,6 @@ export default function BookingManagement() {
           </table>
         </div>
       </div>
-
-      {/* Edit Modal */}
-      {editingId && editData && (
-        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
-          <motion.div
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className="bg-[#1a1a1a] border-2 border-gray-800 rounded-xl p-6 max-w-md w-full max-h-[90vh] overflow-y-auto"
-          >
-            <h3 className="text-xl font-bold text-white mb-4">Edit Booking</h3>
-            <div className="space-y-4">
-              <div>
-                <label className="block text-white mb-2">Nama</label>
-                <input
-                  type="text"
-                  value={editData.name}
-                  onChange={(e) => setEditData({ ...editData, name: e.target.value })}
-                  className="w-full bg-[#111111] border-2 border-gray-800 rounded-lg px-4 py-2 text-white focus:border-[#ff7a00] focus:outline-none"
-                />
-              </div>
-              <div>
-                <label className="block text-white mb-2">No WhatsApp</label>
-                <input
-                  type="tel"
-                  value={editData.phone}
-                  onChange={(e) => setEditData({ ...editData, phone: e.target.value })}
-                  className="w-full bg-[#111111] border-2 border-gray-800 rounded-lg px-4 py-2 text-white focus:border-[#ff7a00] focus:outline-none"
-                />
-              </div>
-              <div>
-                <label className="block text-white mb-2">Jenis Motor</label>
-                <select
-                  value={editData.bikeSize}
-                  onChange={(e) => setEditData({ ...editData, bikeSize: e.target.value })}
-                  className="w-full bg-[#111111] border-2 border-gray-800 rounded-lg px-4 py-2 text-white focus:border-[#ff7a00] focus:outline-none"
-                >
-                  <option value="M">M</option>
-                  <option value="L">L</option>
-                  <option value="XL">XL</option>
-                </select>
-              </div>
-              <div>
-                <label className="block text-white mb-2">Tanggal</label>
-                <input
-                  type="date"
-                  value={editData.date}
-                  onChange={(e) => setEditData({ ...editData, date: e.target.value })}
-                  className="w-full bg-[#111111] border-2 border-gray-800 rounded-lg px-4 py-2 text-white focus:border-[#ff7a00] focus:outline-none"
-                />
-              </div>
-              <div>
-                <label className="block text-white mb-2">Jam</label>
-                <input
-                  type="text"
-                  value={editData.time}
-                  onChange={(e) => setEditData({ ...editData, time: e.target.value })}
-                  className="w-full bg-[#111111] border-2 border-gray-800 rounded-lg px-4 py-2 text-white focus:border-[#ff7a00] focus:outline-none"
-                />
-              </div>
-              <div className="flex gap-3 mt-6">
-                <button
-                  onClick={handleSaveEdit}
-                  className="flex-1 bg-[#ff7a00] hover:bg-[#ff7a00]/90 text-white px-4 py-2 rounded-lg transition-colors"
-                >
-                  Simpan
-                </button>
-                <button
-                  onClick={() => {
-                    setEditingId(null);
-                    setEditData(null);
-                  }}
-                  className="flex-1 bg-gray-700 hover:bg-gray-600 text-white px-4 py-2 rounded-lg transition-colors"
-                >
-                  Batal
-                </button>
-              </div>
-            </div>
-          </motion.div>
-        </div>
-      )}
     </div>
   );
 }

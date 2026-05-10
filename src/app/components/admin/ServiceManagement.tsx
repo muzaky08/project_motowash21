@@ -145,7 +145,7 @@ export default function ServiceManagement() {
   return (
     <div>
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
-        <h2 className="text-2xl font-bold text-white">Manajemen Layanan</h2>
+        <h2 className="text-2xl font-bold text-foreground">Manajemen Layanan</h2>
         <button
           onClick={() => setIsAdding(true)}
           className="flex items-center gap-2 bg-[#ff7a00] hover:bg-[#ff7a00]/90 text-white px-6 py-3 rounded-lg font-semibold transition-colors"
@@ -163,10 +163,10 @@ export default function ServiceManagement() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: index * 0.1 }}
-            className="bg-[#1a1a1a] border-2 border-gray-800 rounded-xl p-6 hover:border-[#ff7a00] transition-all"
+            className="bg-card border border-border rounded-xl p-6 hover:border-[#ff7a00] transition-all"
           >
             <div className="flex items-start justify-between mb-4">
-              <h3 className="text-xl font-bold text-white">{service.name}</h3>
+              <h3 className="text-xl font-bold text-foreground">{service.name}</h3>
               <div className="flex gap-2">
                 <button
                   onClick={() => handleEdit(service)}
@@ -184,23 +184,23 @@ export default function ServiceManagement() {
             </div>
 
             <div className="mb-4">
-              <p className="text-gray-500 text-xs font-semibold uppercase mb-2">Treatment:</p>
+              <p className="text-muted-foreground text-xs font-semibold uppercase mb-2">Treatment:</p>
               <ul className="space-y-1">
                 {service.treatments.map((treatment, idx) => (
-                  <li key={idx} className="text-gray-400 text-sm">
+                  <li key={idx} className="text-muted-foreground text-sm">
                     • {treatment}
                   </li>
                 ))}
               </ul>
             </div>
 
-            <div className="border-t border-gray-800 pt-4">
-              <p className="text-gray-500 text-xs font-semibold uppercase mb-2">Harga:</p>
+            <div className="border-t border-border pt-4">
+              <p className="text-muted-foreground text-xs font-semibold uppercase mb-2">Harga:</p>
               <div className="grid grid-cols-3 gap-2">
                 {Object.entries(service.prices).map(([size, price]) => (
                   <div key={size} className="text-center">
                     <p className="text-[#ff7a00] font-bold text-xs">{size}</p>
-                    <p className="text-white text-sm">Rp {price}</p>
+                    <p className="text-foreground text-sm">Rp {price}</p>
                   </div>
                 ))}
               </div>
@@ -215,21 +215,21 @@ export default function ServiceManagement() {
           <motion.div
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
-            className="bg-[#1a1a1a] border-2 border-gray-800 rounded-xl p-6 max-w-lg w-full max-h-[90vh] overflow-y-auto"
+            className="bg-card border border-border rounded-xl p-6 max-w-lg w-full max-h-[90vh] overflow-y-auto"
           >
-            <h3 className="text-xl font-bold text-white mb-4">Edit Layanan</h3>
+            <h3 className="text-xl font-bold text-foreground mb-4">Edit Layanan</h3>
             <div className="space-y-4">
               <div>
-                <label className="block text-white mb-2">Nama Layanan</label>
+                <label className="block text-foreground mb-2">Nama Layanan</label>
                 <input
                   type="text"
                   value={editData.name}
                   onChange={(e) => setEditData({ ...editData, name: e.target.value })}
-                  className="w-full bg-[#111111] border-2 border-gray-800 rounded-lg px-4 py-2 text-white focus:border-[#ff7a00] focus:outline-none"
+                  className="w-full bg-input-background border border-border rounded-lg px-4 py-2 text-foreground focus:border-[#ff7a00] focus:outline-none"
                 />
               </div>
               <div>
-                <label className="block text-white mb-2">Treatments</label>
+                <label className="block text-foreground mb-2">Treatments</label>
                 {editData.treatments.map((treatment, idx) => (
                   <input
                     key={idx}
@@ -240,16 +240,16 @@ export default function ServiceManagement() {
                       newTreatments[idx] = e.target.value;
                       setEditData({ ...editData, treatments: newTreatments });
                     }}
-                    className="w-full bg-[#111111] border-2 border-gray-800 rounded-lg px-4 py-2 text-white focus:border-[#ff7a00] focus:outline-none mb-2"
+                    className="w-full bg-input-background border border-border rounded-lg px-4 py-2 text-foreground focus:border-[#ff7a00] focus:outline-none mb-2"
                   />
                 ))}
               </div>
               <div>
-                <label className="block text-white mb-2">Harga</label>
+                <label className="block text-foreground mb-2">Harga</label>
                 <div className="grid grid-cols-3 gap-4">
                   {(["M", "L", "XL"] as const).map((size) => (
                     <div key={size}>
-                      <label className="block text-gray-400 text-sm mb-1">{size}</label>
+                      <label className="block text-muted-foreground text-sm mb-1">{size}</label>
                       <input
                         type="text"
                         value={editData.prices[size]}
@@ -259,7 +259,7 @@ export default function ServiceManagement() {
                             prices: { ...editData.prices, [size]: e.target.value },
                           })
                         }
-                        className="w-full bg-[#111111] border-2 border-gray-800 rounded-lg px-3 py-2 text-white focus:border-[#ff7a00] focus:outline-none"
+                        className="w-full bg-input-background border border-border rounded-lg px-3 py-2 text-foreground focus:border-[#ff7a00] focus:outline-none"
                       />
                     </div>
                   ))}
@@ -295,36 +295,36 @@ export default function ServiceManagement() {
           <motion.div
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
-            className="bg-[#1a1a1a] border-2 border-gray-800 rounded-xl p-6 max-w-lg w-full max-h-[90vh] overflow-y-auto"
+            className="bg-card border border-border rounded-xl p-6 max-w-lg w-full max-h-[90vh] overflow-y-auto"
           >
-            <h3 className="text-xl font-bold text-white mb-4">Tambah Layanan Baru</h3>
+            <h3 className="text-xl font-bold text-foreground mb-4">Tambah Layanan Baru</h3>
             <div className="space-y-4">
               <div>
-                <label className="block text-white mb-2">Nama Layanan</label>
+                <label className="block text-foreground mb-2">Nama Layanan</label>
                 <input
                   type="text"
                   value={newService.name}
                   onChange={(e) => setNewService({ ...newService, name: e.target.value })}
-                  className="w-full bg-[#111111] border-2 border-gray-800 rounded-lg px-4 py-2 text-white focus:border-[#ff7a00] focus:outline-none"
+                  className="w-full bg-input-background border border-border rounded-lg px-4 py-2 text-foreground focus:border-[#ff7a00] focus:outline-none"
                 />
               </div>
               <div>
-                <label className="block text-white mb-2">Treatments (satu per baris)</label>
+                <label className="block text-foreground mb-2">Treatments (satu per baris)</label>
                 <textarea
                   value={newService.treatments?.join("\n")}
                   onChange={(e) =>
                     setNewService({ ...newService, treatments: e.target.value.split("\n") })
                   }
                   rows={5}
-                  className="w-full bg-[#111111] border-2 border-gray-800 rounded-lg px-4 py-2 text-white focus:border-[#ff7a00] focus:outline-none"
+                  className="w-full bg-input-background border border-border rounded-lg px-4 py-2 text-foreground focus:border-[#ff7a00] focus:outline-none"
                 />
               </div>
               <div>
-                <label className="block text-white mb-2">Harga</label>
+                <label className="block text-foreground mb-2">Harga</label>
                 <div className="grid grid-cols-3 gap-4">
                   {(["M", "L", "XL"] as const).map((size) => (
                     <div key={size}>
-                      <label className="block text-gray-400 text-sm mb-1">{size}</label>
+                      <label className="block text-muted-foreground text-sm mb-1">{size}</label>
                       <input
                         type="text"
                         value={newService.prices?.[size] || ""}
@@ -338,7 +338,7 @@ export default function ServiceManagement() {
                             },
                           })
                         }
-                        className="w-full bg-[#111111] border-2 border-gray-800 rounded-lg px-3 py-2 text-white focus:border-[#ff7a00] focus:outline-none"
+                        className="w-full bg-input-background border border-border rounded-lg px-3 py-2 text-foreground focus:border-[#ff7a00] focus:outline-none"
                       />
                     </div>
                   ))}

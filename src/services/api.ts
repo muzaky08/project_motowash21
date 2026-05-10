@@ -6,6 +6,7 @@
  */
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+export const API_ORIGIN = API_BASE_URL.replace(/\/api\/?$/, '');
 
 interface RequestOptions extends RequestInit {
   token?: string;
@@ -63,6 +64,15 @@ export const bookingService = {
     method: 'GET',
     token,
   }),
+  getAllBookings: (token: string) => apiRequest<any[]>('/transactions/all', {
+    method: 'GET',
+    token,
+  }),
+  updateBookingStatus: (id: string, status: string, token: string) => apiRequest<any>(`/transactions/${id}/status`, {
+    method: 'PATCH',
+    token,
+    body: JSON.stringify({ status }),
+  }),
 };
 
 export const voucherService = {
@@ -87,6 +97,14 @@ export const userService = {
 };
 
 export const chatService = {
+  getConversations: (token: string) => apiRequest<any[]>('/messages/conversations/list', {
+    method: 'GET',
+    token,
+  }),
+  getUnreadCount: (token: string) => apiRequest<any>('/messages/unread/count', {
+    method: 'GET',
+    token,
+  }),
   getMessages: (receiverId: string, token: string) => apiRequest<any>(`/messages/${receiverId}`, {
     method: 'GET',
     token,
@@ -104,6 +122,10 @@ export const notificationService = {
     token,
   }),
   markAsRead: (id: string, token: string) => apiRequest<any>(`/notifications/${id}/read`, {
+    method: 'PATCH',
+    token,
+  }),
+  markAllAsRead: (token: string) => apiRequest<any>('/notifications/read-all', {
     method: 'PATCH',
     token,
   }),

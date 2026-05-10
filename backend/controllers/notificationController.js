@@ -21,3 +21,12 @@ exports.markAsRead = async (req, res, next) => {
     next(err);
   }
 };
+
+exports.markAllAsRead = async (req, res, next) => {
+  try {
+    await db.execute('UPDATE notifications SET is_read = true WHERE user_id = ?', [req.user.id]);
+    res.json({ message: 'All notifications marked as read' });
+  } catch (err) {
+    next(err);
+  }
+};

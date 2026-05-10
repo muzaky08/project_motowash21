@@ -3,6 +3,7 @@ import { useNavigate } from "react-router";
 import { Menu, X, Sun, Moon } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { useTheme } from "../contexts/ThemeContext";
+import Logo from "./Logo";
 
 export default function Navbar() {
   const navigate = useNavigate();
@@ -52,29 +53,23 @@ export default function Navbar() {
       <nav
         className={`fixed top-0 w-full z-50 transition-all duration-300 ${
           isScrolled
-            ? "bg-gray-900/95 dark:bg-gray-900/95 backdrop-blur-md shadow-lg"
-            : "bg-transparent"
+            ? "bg-white/95 dark:bg-[#0b1220]/95 backdrop-blur-md shadow-lg border-b border-gray-200/80 dark:border-white/10"
+            : "bg-white/85 dark:bg-[#0b1220]/85 backdrop-blur-sm border-b border-gray-200/60 dark:border-white/10"
         }`}
       >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-20">
+          <div className="flex h-16 sm:h-[72px] lg:h-20 items-center justify-between gap-4">
             {/* Logo */}
             <motion.div
               initial={{ opacity: 0, x: -20 }}
               animate={{ opacity: 1, x: 0 }}
-              className="flex items-center space-x-2"
+              className="flex min-w-0 items-center"
             >
-              <div className="w-10 h-10 bg-[#ff7a00] rounded-lg flex items-center justify-center">
-                <span className="text-white font-bold text-xl">G</span>
-              </div>
-              <div>
-                <h1 className="text-white dark:text-white font-bold text-lg leading-tight">GARASI.21</h1>
-                <p className="text-[#ff7a00] text-xs font-semibold">MOTOWASH</p>
-              </div>
+              <Logo variant="full" size="md" />
             </motion.div>
 
             {/* Desktop Menu */}
-            <div className="hidden md:flex items-center space-x-6">
+            <div className="hidden lg:flex items-center gap-4 xl:gap-6">
               {menuItems.map((item, index) => (
                 <motion.button
                   key={item.name}
@@ -82,8 +77,8 @@ export default function Navbar() {
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: index * 0.1 }}
                   onClick={() => handleMenuClick(item)}
-                  className={`text-gray-300 dark:text-gray-300 hover:text-[#ff7a00] transition-colors duration-300 font-medium text-sm ${
-                    item.name === 'Login' ? 'bg-[#ff7a00] text-white px-4 py-2 rounded-lg hover:bg-[#ff7a00]/90' : ''
+                  className={`whitespace-nowrap text-sm font-semibold text-gray-700 transition-colors duration-300 hover:text-[#ff7a00] dark:text-gray-200 dark:hover:text-[#ff9a3d] lg:text-base ${
+                    item.name === 'Login' ? 'bg-[#ff7a00] text-white px-5 py-2.5 rounded-lg hover:bg-[#e96f00] dark:text-white' : ''
                   }`}
                 >
                   {item.name}
@@ -95,7 +90,7 @@ export default function Navbar() {
                 initial={{ opacity: 0, scale: 0.8 }}
                 animate={{ opacity: 1, scale: 1 }}
                 onClick={toggleTheme}
-                className="p-2.5 rounded-lg bg-gray-800/50 dark:bg-gray-700/50 hover:bg-[#ff7a00]/20 border border-gray-700 dark:border-gray-600 transition-all duration-300"
+                className="rounded-lg border border-gray-200 bg-gray-100 p-2.5 text-[#ff7a00] transition-all duration-300 hover:bg-[#ff7a00]/10 dark:border-white/10 dark:bg-white/5 dark:hover:bg-[#ff7a00]/15"
                 aria-label="Toggle theme"
               >
                 <motion.div
@@ -113,17 +108,18 @@ export default function Navbar() {
             </div>
 
             {/* Mobile Menu Button */}
-            <div className="md:hidden flex items-center space-x-3">
+            <div className="flex items-center space-x-3 lg:hidden">
               <button
                 onClick={toggleTheme}
-                className="p-2 rounded-lg bg-gray-800/50 dark:bg-gray-700/50 text-[#ff7a00]"
+                className="rounded-lg border border-gray-200 bg-gray-100 p-2 text-[#ff7a00] dark:border-white/10 dark:bg-white/5"
                 aria-label="Toggle theme"
               >
                 {theme === "dark" ? <Moon size={20} /> : <Sun size={20} />}
               </button>
               <button
                 onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-                className="text-white p-2"
+                className="rounded-lg p-2 text-gray-800 dark:text-white"
+                aria-label="Toggle menu"
               >
                 {isMobileMenuOpen ? <X size={28} /> : <Menu size={28} />}
               </button>
@@ -140,7 +136,7 @@ export default function Navbar() {
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: "100%" }}
             transition={{ type: "tween" }}
-            className="fixed inset-0 bg-gray-900 dark:bg-gray-950 z-40 md:hidden pt-20"
+            className="fixed inset-0 z-40 bg-white pt-20 dark:bg-[#0b1220] lg:hidden"
           >
             <div className="flex flex-col items-center justify-center h-full space-y-8">
               {menuItems.map((item, index) => (
@@ -150,7 +146,7 @@ export default function Navbar() {
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ delay: index * 0.1 }}
                   onClick={() => handleMenuClick(item)}
-                  className="text-white dark:text-gray-100 hover:text-[#ff7a00] transition-colors duration-300 text-2xl font-semibold"
+                  className="text-2xl font-semibold text-gray-900 transition-colors duration-300 hover:text-[#ff7a00] dark:text-gray-100 dark:hover:text-[#ff9a3d]"
                 >
                   {item.name}
                 </motion.button>

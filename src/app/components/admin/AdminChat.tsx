@@ -1,11 +1,23 @@
-import { useState, useEffect, useRef } from "react";
-import { motion, AnimatePresence } from "motion/react";
-import { Send, Search, User, MoreVertical, Phone, Video, Paperclip, Smile, MessageCircle } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { AnimatePresence, motion } from "motion/react";
+import {
+  Archive,
+  ArrowLeft,
+  MoreVertical,
+  Paperclip,
+  Phone,
+  Search,
+  Send,
+  Smile,
+  User,
+  Video,
+} from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "../../contexts/AuthContext";
 import { chatService, userService } from "../../../services/api";
+import { getSocket } from "../../../services/socket";
 
-export default function AdminChat() {
+export default function AdminChat({ standalone = false }: { standalone?: boolean }) {
   const { user: currentUser, token } = useAuth();
   const [users, setUsers] = useState<any[]>([]);
   const [selectedUser, setSelectedUser] = useState<any>(null);
@@ -13,32 +25,100 @@ export default function AdminChat() {
   const [newMessage, setNewMessage] = useState("");
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
+  const [filter, setFilter] = useState<"all" | "unread">("all");
+  const [typingUserId, setTypingUserId] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const typingTimeoutRef = useRef<number | null>(null);
 
   useEffect(() => {
     loadUsers();
+    if ("Notification" in window && Notification.permission === "default") {
+      Notification.requestPermission().catch(() => undefined);
+    }
   }, [token]);
 
   useEffect(() => {
-    if (selectedUser) {
-      loadMessages();
-      const interval = setInterval(loadMessages, 5000);
-      return () => clearInterval(interval);
-    }
+    if (!selectedUser) return;
+    loadMessages();
   }, [selectedUser, token]);
 
   useEffect(() => {
-    scrollToBottom();
+    if (!token) return;
+    const socket = getSocket(token);
+
+    const updateConversation = (message: any, partnerId: string, unreadDelta = 0) => {
+      setUsers((prev) => {
+        const previous = prev.find((item) => item.id === partnerId);
+        const others = prev.filter((item) => item.id !== partnerId);
+        const next = {
+          ...(previous || message.sender || {}),
+          id: partnerId,
+          name: previous?.name || message.sender?.name || "User",
+          email: previous?.email || message.sender?.email || "",
+          avatar_url: previous?.avatar_url || message.sender?.avatar_url,
+          last_message: message.message,
+          last_message_at: message.created_at || new Date().toISOString(),
+          unread_count: Math.max(0, Number(previous?.unread_count || 0) + unreadDelta),
+        };
+        return [next, ...others];
+      });
+    };
+
+    const handleNewMessage = (message: any) => {
+      if (message.receiver_id !== currentUser?.id) return;
+      const isActiveRoom = selectedUser?.id === message.sender_id;
+      updateConversation(message, message.sender_id, isActiveRoom ? 0 : 1);
+      if (isActiveRoom) {
+        setMessages((prev) => (prev.some((item) => item.id === message.id) ? prev : [...prev, message]));
+      }
+      toast.info(message.sender?.name ? `Pesan baru dari ${message.sender.name}` : "Pesan baru dari user");
+      if (!isActiveRoom && document.hidden && "Notification" in window && Notification.permission === "granted") {
+        new Notification("Pesan baru dari user", { body: message.message });
+      }
+    };
+
+    const handleSent = (message: any) => {
+      if (message.sender_id !== currentUser?.id) return;
+      updateConversation(message, message.receiver_id, 0);
+      if (selectedUser?.id === message.receiver_id) {
+        setMessages((prev) => (prev.some((item) => item.id === message.id) ? prev : [...prev, message]));
+      }
+    };
+
+    const handleTypingStart = ({ userId }: { userId: string }) => setTypingUserId(userId);
+    const handleTypingStop = ({ userId }: { userId: string }) => {
+      setTypingUserId((current) => (current === userId ? null : current));
+    };
+
+    socket.on("message:new", handleNewMessage);
+    socket.on("message:sent", handleSent);
+    socket.on("typing:start", handleTypingStart);
+    socket.on("typing:stop", handleTypingStop);
+
+    return () => {
+      socket.off("message:new", handleNewMessage);
+      socket.off("message:sent", handleSent);
+      socket.off("typing:start", handleTypingStart);
+      socket.off("typing:stop", handleTypingStop);
+    };
+  }, [token, currentUser?.id, selectedUser?.id]);
+
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
   const loadUsers = async () => {
     if (!token) return;
     try {
-      const data = await userService.getAllUsers(token);
-      // Filter out current admin and show only users
-      setUsers(data.filter((u: any) => u.id !== currentUser?.id));
+      const conversations = await chatService.getConversations(token);
+      if (conversations.length > 0) {
+        setUsers(conversations.filter((item: any) => item.id !== currentUser?.id));
+      } else {
+        const data = await userService.getAllUsers(token);
+        setUsers(data.filter((item: any) => item.id !== currentUser?.id && item.role === "user"));
+      }
     } catch (error) {
-      console.error('Error loading users:', error);
+      console.error("Error loading users:", error);
     } finally {
       setLoading(false);
     }
@@ -49,9 +129,24 @@ export default function AdminChat() {
     try {
       const data = await chatService.getMessages(selectedUser.id, token);
       setMessages(data.messages || []);
+      setUsers((prev) =>
+        prev.map((item) => (item.id === selectedUser.id ? { ...item, unread_count: 0 } : item)),
+      );
     } catch (error) {
-      console.error('Error loading messages:', error);
+      console.error("Error loading messages:", error);
     }
+  };
+
+  const openRoom = (user: any) => {
+    setSelectedUser(user);
+    setSearchQuery("");
+  };
+
+  const closeRoom = () => {
+    setSelectedUser(null);
+    setMessages([]);
+    setNewMessage("");
+    loadUsers();
   };
 
   const sendMessage = async (e: React.FormEvent) => {
@@ -59,133 +154,199 @@ export default function AdminChat() {
     if (!newMessage.trim() || !token || !selectedUser) return;
 
     try {
-      await chatService.sendMessage({
-        receiver_id: selectedUser.id,
-        message: newMessage,
-      }, token);
-
+      await chatService.sendMessage({ receiver_id: selectedUser.id, message: newMessage.trim() }, token);
       setNewMessage("");
-      loadMessages();
-    } catch (error: any) {
+    } catch {
       toast.error("Gagal mengirim pesan");
     }
   };
 
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  const handleTyping = (value: string) => {
+    setNewMessage(value);
+    if (!token || !selectedUser) return;
+
+    const socket = getSocket(token);
+    socket.emit("typing:start", { receiverId: selectedUser.id });
+    if (typingTimeoutRef.current) window.clearTimeout(typingTimeoutRef.current);
+    typingTimeoutRef.current = window.setTimeout(() => {
+      socket.emit("typing:stop", { receiverId: selectedUser.id });
+    }, 800);
   };
 
-  const filteredUsers = users.filter(u =>
-    u.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    u.email.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const filteredUsers = useMemo(() => {
+    const query = searchQuery.toLowerCase();
+    const items = users.filter(
+      (item) =>
+        (item.name || "").toLowerCase().includes(query) ||
+        (item.email || "").toLowerCase().includes(query) ||
+        (item.last_message || "").toLowerCase().includes(query),
+    );
+    return filter === "unread" ? items.filter((item) => Number(item.unread_count || 0) > 0) : items;
+  }, [filter, searchQuery, users]);
+
+  const formatTime = (value?: string) => {
+    if (!value) return "";
+    return new Date(value).toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" });
+  };
+
+  const renderAvatar = (person: any, size = "h-12 w-12") => {
+    if (person?.avatar_url) {
+      return <img src={person.avatar_url} alt={person.name} className={`${size} rounded-full object-cover`} />;
+    }
+    return (
+      <div className={`${size} flex items-center justify-center rounded-full bg-[#ff7a00] text-lg font-bold text-white`}>
+        {(person?.name || "U").charAt(0).toUpperCase()}
+      </div>
+    );
+  };
 
   return (
-    <div className="bg-card border border-border rounded-xl h-[700px] flex overflow-hidden shadow-2xl">
-      {/* Sidebar - User List */}
-      <div className="w-full md:w-80 border-r border-border flex flex-col bg-muted/30">
-        {/* Sidebar Header */}
-        <div className="p-4 bg-muted/50 border-b border-border flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <div className="w-10 h-10 rounded-full bg-[#ff7a00] flex items-center justify-center text-white font-bold">
-              {currentUser?.name?.charAt(0)}
-            </div>
-            <h2 className="font-bold text-foreground">Obrolan</h2>
-          </div>
-          <button className="p-2 hover:bg-muted rounded-full text-muted-foreground">
-            <MoreVertical size={20} />
-          </button>
-        </div>
-
-        {/* Search */}
-        <div className="p-3">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={18} />
-            <input
-              type="text"
-              placeholder="Cari atau mulai obrolan baru"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full bg-input-background border border-border rounded-lg pl-10 pr-4 py-2 text-sm focus:outline-none focus:border-[#ff7a00]"
-            />
-          </div>
-        </div>
-
-        {/* User List */}
-        <div className="flex-1 overflow-y-auto">
-          {loading ? (
-            <div className="p-4 text-center text-muted-foreground">Memuat...</div>
-          ) : filteredUsers.length === 0 ? (
-            <div className="p-4 text-center text-muted-foreground">Tidak ada pengguna</div>
-          ) : (
-            filteredUsers.map((u) => (
-              <button
-                key={u.id}
-                onClick={() => setSelectedUser(u)}
-                className={`w-full p-4 flex items-center gap-3 hover:bg-muted transition-colors border-b border-border/50 ${selectedUser?.id === u.id ? "bg-muted" : ""
-                  }`}
-              >
-                <div className="relative">
-                  {u.avatar_url ? (
-                    <img src={u.avatar_url} alt={u.name} className="w-12 h-12 rounded-full object-cover" />
-                  ) : (
-                    <div className="w-12 h-12 rounded-full bg-blue-500 flex items-center justify-center text-white font-bold">
-                      {u.name.charAt(0)}
-                    </div>
-                  )}
-                  <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 border-2 border-card rounded-full"></div>
-                </div>
-                <div className="flex-1 text-left">
-                  <div className="flex justify-between items-center mb-1">
-                    <h3 className="font-bold text-foreground text-sm truncate">{u.name}</h3>
-                    <span className="text-[10px] text-muted-foreground">12:30</span>
-                  </div>
-                  <p className="text-xs text-muted-foreground truncate">
-                    Klik untuk melihat percakapan
-                  </p>
-                </div>
-              </button>
-            ))
-          )}
-        </div>
-      </div>
-
-      {/* Main Chat Area */}
-      <div className="flex-1 flex flex-col bg-[#efeae2] dark:bg-[#0b141a] relative">
-        {selectedUser ? (
-          <>
-            {/* Chat Header */}
-            <div className="p-3 bg-muted border-b border-border flex items-center justify-between sticky top-0 z-10">
+    <div
+      className={`${standalone ? "h-[calc(100vh-7rem)]" : "h-[700px]"} mx-auto max-w-5xl overflow-hidden rounded-xl border border-border bg-card shadow-2xl`}
+    >
+      {!selectedUser ? (
+        <div className="flex h-full flex-col bg-card">
+          <div className="border-b border-border bg-card p-4 sm:p-6">
+            <div className="flex items-center justify-between gap-3">
               <div className="flex items-center gap-3">
-                {selectedUser.avatar_url ? (
-                  <img src={selectedUser.avatar_url} alt={selectedUser.name} className="w-10 h-10 rounded-full object-cover" />
-                ) : (
-                  <div className="w-10 h-10 rounded-full bg-blue-500 flex items-center justify-center text-white font-bold">
-                    {selectedUser.name.charAt(0)}
-                  </div>
-                )}
+                {renderAvatar(currentUser, "h-11 w-11")}
                 <div>
-                  <h3 className="font-bold text-foreground text-sm">{selectedUser.name}</h3>
-                  <p className="text-[10px] text-green-500 font-semibold">online</p>
+                  <h2 className="text-2xl font-bold text-foreground sm:text-3xl">Chat Admin</h2>
+                  <p className="text-xs text-muted-foreground">Kelola percakapan pelanggan</p>
                 </div>
               </div>
-              <div className="flex items-center gap-4 text-muted-foreground">
-                <Video size={20} className="cursor-not-allowed opacity-50" />
-                <Phone size={18} className="cursor-not-allowed opacity-50" />
-                <MoreVertical size={20} className="cursor-pointer" />
+              <button className="rounded-full p-2 text-muted-foreground hover:bg-muted" aria-label="Menu chat">
+                <MoreVertical size={22} />
+              </button>
+            </div>
+            <div className="relative mt-4">
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground" size={20} />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Cari pelanggan atau pesan"
+                className="w-full rounded-full border border-border bg-muted px-12 py-3 text-sm text-foreground outline-none focus:border-[#ff7a00]"
+              />
+            </div>
+            <div className="mt-4 flex gap-2 overflow-x-auto">
+              <button
+                type="button"
+                onClick={() => setFilter("all")}
+                className={`rounded-full px-4 py-2 text-sm font-semibold transition-colors ${
+                  filter === "all" ? "bg-[#ff7a00] text-white" : "bg-muted text-muted-foreground"
+                }`}
+              >
+                Semua
+              </button>
+              <button
+                type="button"
+                onClick={() => setFilter("unread")}
+                className={`rounded-full px-4 py-2 text-sm font-semibold transition-colors ${
+                  filter === "unread" ? "bg-[#ff7a00] text-white" : "bg-muted text-muted-foreground"
+                }`}
+              >
+                Belum dibaca
+              </button>
+              <button
+                type="button"
+                className="flex items-center gap-2 rounded-full bg-muted px-4 py-2 text-sm font-semibold text-muted-foreground"
+              >
+                <Archive size={16} />
+                Arsip
+              </button>
+            </div>
+          </div>
+
+          <div className="flex-1 overflow-y-auto">
+            {loading ? (
+              <div className="p-6 text-center text-muted-foreground">Memuat chat...</div>
+            ) : filteredUsers.length === 0 ? (
+              <div className="flex h-full flex-col items-center justify-center gap-3 p-8 text-center text-muted-foreground">
+                <User size={44} />
+                <p>Belum ada percakapan pelanggan.</p>
+              </div>
+            ) : (
+              filteredUsers.map((item) => (
+                <button
+                  key={item.id}
+                  type="button"
+                  onClick={() => openRoom(item)}
+                  className="flex w-full items-center gap-3 border-b border-border/60 px-4 py-4 text-left transition-colors hover:bg-muted/70 sm:px-6"
+                >
+                  <div className="relative shrink-0">
+                    {renderAvatar(item)}
+                    <span className="absolute bottom-0 right-0 h-3 w-3 rounded-full border-2 border-card bg-green-500" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center justify-between gap-3">
+                      <p className="truncate font-bold text-foreground">{item.name}</p>
+                      <span
+                        className={`shrink-0 text-xs ${
+                          Number(item.unread_count || 0) > 0 ? "font-bold text-green-500" : "text-muted-foreground"
+                        }`}
+                      >
+                        {formatTime(item.last_message_at)}
+                      </span>
+                    </div>
+                    <div className="mt-1 flex items-center justify-between gap-3">
+                      <p className="truncate text-sm text-muted-foreground">
+                        {typingUserId === item.id ? "sedang mengetik..." : item.last_message || item.email || "Klik untuk membuka percakapan"}
+                      </p>
+                      {Number(item.unread_count || 0) > 0 && (
+                        <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-green-500 px-1.5 text-[11px] font-bold text-white">
+                          {Number(item.unread_count) > 99 ? "99+" : item.unread_count}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </button>
+              ))
+            )}
+          </div>
+        </div>
+      ) : (
+        <div className="flex h-full flex-col bg-[#efeae2] dark:bg-[#0b141a]">
+          <div className="sticky top-0 z-10 flex items-center justify-between border-b border-border bg-card p-3">
+            <div className="flex min-w-0 items-center gap-3">
+              <button
+                type="button"
+                onClick={closeRoom}
+                className="rounded-full p-2 text-muted-foreground hover:bg-muted"
+                aria-label="Kembali ke daftar chat"
+              >
+                <ArrowLeft size={22} />
+              </button>
+              {renderAvatar(selectedUser, "h-10 w-10")}
+              <div className="min-w-0">
+                <h3 className="truncate text-sm font-bold text-foreground">{selectedUser.name}</h3>
+                <p className="text-[10px] font-semibold text-green-500">
+                  {typingUserId === selectedUser.id ? "sedang mengetik..." : "online"}
+                </p>
               </div>
             </div>
+            <div className="flex items-center gap-3 text-muted-foreground">
+              <Video size={20} className="opacity-50" />
+              <Phone size={18} className="opacity-50" />
+              <MoreVertical size={20} />
+            </div>
+          </div>
 
-            {/* Messages Area */}
-            <div className="flex-1 overflow-y-auto p-4 space-y-2 bg-[url('https://user-images.githubusercontent.com/15075759/28719144-86dc0f70-73b1-11e7-911d-60d70fcded21.png')] bg-repeat opacity-90">
-              <div className="flex justify-center mb-4">
-                <span className="bg-muted/80 text-muted-foreground text-[10px] px-2 py-1 rounded-md shadow-sm uppercase font-bold tracking-wider">
-                  Hari Ini
-                </span>
-              </div>
+          <div className="flex-1 space-y-2 overflow-y-auto bg-[url('https://user-images.githubusercontent.com/15075759/28719144-86dc0f70-73b1-11e7-911d-60d70fcded21.png')] bg-repeat p-4">
+            <div className="mb-4 flex justify-center">
+              <span className="rounded-md bg-muted/90 px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-muted-foreground shadow-sm">
+                Hari Ini
+              </span>
+            </div>
 
-              <AnimatePresence initial={false}>
-                {messages.map((msg) => {
+            <AnimatePresence initial={false}>
+              {messages.length === 0 ? (
+                <div className="flex h-full flex-col items-center justify-center gap-2 text-muted-foreground opacity-70">
+                  <User size={48} />
+                  <p className="text-sm">Belum ada pesan dengan pelanggan ini</p>
+                </div>
+              ) : (
+                messages.map((msg) => {
                   const isMine = msg.sender_id === currentUser?.id;
                   return (
                     <motion.div
@@ -195,81 +356,56 @@ export default function AdminChat() {
                       className={`flex ${isMine ? "justify-end" : "justify-start"}`}
                     >
                       <div
-                        className={`max-w-[85%] px-3 py-1.5 rounded-lg shadow-sm relative group ${isMine
-                            ? "bg-[#d9fdd3] dark:bg-[#005c4b] text-[#111b21] dark:text-[#e9edef] rounded-tr-none"
-                            : "bg-white dark:bg-[#202c33] text-[#111b21] dark:text-[#e9edef] rounded-tl-none"
-                          }`}
+                        className={`max-w-[85%] rounded-lg px-3 py-1.5 shadow-sm ${
+                          isMine
+                            ? "rounded-tr-none bg-[#d9fdd3] text-[#111b21] dark:bg-[#005c4b] dark:text-[#e9edef]"
+                            : "rounded-tl-none bg-white text-[#111b21] dark:bg-[#202c33] dark:text-[#e9edef]"
+                        }`}
                       >
-                        <p className="text-sm whitespace-pre-wrap">{msg.message}</p>
-                        <div className="flex items-center justify-end gap-1 mt-1">
-                          <span className="text-[9px] opacity-60">
-                            {new Date(msg.created_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}
-                          </span>
-                          {isMine && (
-                            <span className="text-[#53bdeb]">
-                              <svg viewBox="0 0 16 11" width="16" height="11" fill="currentColor">
-                                <path d="M15.01 3.316l-.478-.372a.365.365 0 00-.51.063L8.666 9.88a.32.32 0 01-.484.032l-.358-.325a.32.32 0 00-.484.032l-.378.48a.418.418 0 00.036.54l1.32 1.267a.32.32 0 00.484-.034l6.272-8.048a.366.366 0 00-.064-.512zm-4.1 0l-.478-.372a.365.365 0 00-.51.063L5.066 9.88a.32.32 0 01-.484.032L1.332 7.027a.366.366 0 00-.511.064l-.44.556a.418.418 0 00.067.545l4.315 3.513a.32.32 0 00.484-.034l6.271-8.048a.366.366 0 00-.063-.512z"></path>
-                              </svg>
-                            </span>
-                          )}
+                        <p className="whitespace-pre-wrap text-sm">{msg.message}</p>
+                        <div className="mt-0.5 flex items-center justify-end gap-1">
+                          <span className="text-[9px] opacity-60">{formatTime(msg.created_at)}</span>
+                          {isMine && <span className="text-xs text-[#53bdeb]">✓✓</span>}
                         </div>
                       </div>
                     </motion.div>
                   );
-                })}
-              </AnimatePresence>
-              <div ref={messagesEndRef} />
-            </div>
-
-            {/* Input Area */}
-            <div className="p-2 bg-muted flex items-center gap-2 sticky bottom-0 border-t border-border/50">
-              <div className="flex items-center gap-1 text-muted-foreground">
-                <button className="p-2 hover:bg-muted-foreground/10 rounded-full transition-colors">
-                  <Smile size={24} />
-                </button>
-                <button className="p-2 hover:bg-muted-foreground/10 rounded-full transition-colors">
-                  <Paperclip size={22} className="rotate-45" />
-                </button>
-              </div>
-              <form onSubmit={sendMessage} className="flex-1 flex gap-2">
-                <input
-                  type="text"
-                  value={newMessage}
-                  onChange={(e) => setNewMessage(e.target.value)}
-                  placeholder="Ketik pesan"
-                  className="flex-1 bg-background dark:bg-[#2a3942] border-none rounded-lg px-4 py-2.5 text-sm focus:outline-none placeholder:text-muted-foreground"
-                />
-                <button
-                  type="submit"
-                  disabled={!newMessage.trim()}
-                  className={`p-2.5 rounded-full transition-all ${newMessage.trim()
-                      ? "bg-[#ff7a00] text-white shadow-lg"
-                      : "text-muted-foreground"
-                    }`}
-                >
-                  <Send size={20} />
-                </button>
-              </form>
-            </div>
-          </>
-        ) : (
-          <div className="flex-1 flex flex-col items-center justify-center p-12 text-center">
-            <div className="w-24 h-24 bg-muted rounded-full flex items-center justify-center mb-6">
-              <MessageCircle size={48} className="text-muted-foreground opacity-20" />
-            </div>
-            <h3 className="text-xl font-bold text-foreground mb-2">WhatsApp untuk Admin Motowash</h3>
-            <p className="text-muted-foreground max-w-sm text-sm">
-              Pilih pengguna dari daftar di sebelah kiri untuk memulai percakapan atau melihat riwayat chat.
-            </p>
-            <div className="mt-12 flex items-center gap-2 text-xs text-muted-foreground/50 uppercase tracking-widest font-bold">
-              <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" className="opacity-30">
-                <path d="M12 2C6.477 2 2 6.477 2 12c0 1.891.524 3.655 1.438 5.161L2.031 22l4.977-1.378A9.957 9.957 0 0012 22c5.523 0 10-4.477 10-10S17.523 2 12 2zm0 18c-1.477 0-2.871-.351-4.102-.973l-.294-.148-3.044.843.857-2.955-.164-.271A7.954 7.954 0 014 12c0-4.411 3.589-8 8-8s8 3.589 8 8-3.589 8-8 8z" />
-              </svg>
-              Terenkripsi secara End-to-End
-            </div>
+                })
+              )}
+            </AnimatePresence>
+            <div ref={messagesEndRef} />
           </div>
-        )}
-      </div>
+
+          <div className="sticky bottom-0 flex items-center gap-2 border-t border-border/50 bg-card p-2">
+            <div className="flex items-center gap-1 text-muted-foreground">
+              <button className="rounded-full p-2 hover:bg-muted" type="button">
+                <Smile size={23} />
+              </button>
+              <button className="rounded-full p-2 hover:bg-muted" type="button">
+                <Paperclip size={21} className="rotate-45" />
+              </button>
+            </div>
+            <form onSubmit={sendMessage} className="flex flex-1 gap-2">
+              <input
+                type="text"
+                value={newMessage}
+                onChange={(e) => handleTyping(e.target.value)}
+                placeholder="Ketik pesan"
+                className="flex-1 rounded-full border-none bg-muted px-4 py-2.5 text-sm text-foreground outline-none placeholder:text-muted-foreground"
+              />
+              <button
+                type="submit"
+                disabled={!newMessage.trim()}
+                className={`rounded-full p-2.5 transition-all ${
+                  newMessage.trim() ? "bg-[#ff7a00] text-white shadow-lg" : "text-muted-foreground opacity-50"
+                }`}
+              >
+                <Send size={20} />
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

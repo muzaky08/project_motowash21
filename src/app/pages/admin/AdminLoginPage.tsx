@@ -6,6 +6,7 @@ import { toast } from "sonner";
 
 import { useAuth } from "../../contexts/AuthContext";
 import { authService } from "../../../services/api";
+import Logo from "../../components/Logo";
 
 export default function AdminLoginPage() {
   const navigate = useNavigate();
@@ -67,15 +68,9 @@ export default function AdminLoginPage() {
             initial={{ opacity: 0, scale: 0.8 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ delay: 0.2, duration: 0.6 }}
-            className="flex items-center justify-center space-x-2 mb-4"
+            className="flex items-center justify-center mb-4"
           >
-            <div className="w-12 h-12 bg-[#ff7a00] rounded-lg flex items-center justify-center">
-              <span className="text-white font-bold text-2xl">G</span>
-            </div>
-            <div>
-              <h1 className="text-foreground font-bold text-xl leading-tight">GARASI.21</h1>
-              <p className="text-[#ff7a00] text-sm font-semibold">MOTOWASH</p>
-            </div>
+            <Logo variant="full" />
           </motion.div>
           <h2 className="text-foreground text-2xl font-bold mb-2">Admin Login</h2>
           <p className="text-muted-foreground">Masuk ke dashboard admin</p>
@@ -128,18 +123,11 @@ export default function AdminLoginPage() {
             {/* Submit Button */}
             <button
               type="submit"
-              className="w-full bg-[#ff7a00] hover:bg-[#ff7a00]/90 text-white px-8 py-4 rounded-lg font-semibold text-lg transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-[#ff7a00]/50"
+              className="w-full bg-[#ff7a00] hover:bg-[#ff7a00]/90 text-white px-8 py-4 rounded-lg font-semibold text-lg transition-all duration-300 transform hover:scale-103 shadow-lg hover:shadow-[#ff7a00]/20"
             >
               Login
             </button>
           </form>
-
-          {/* Demo Credentials */}
-          <div className="mt-6 p-4 bg-[#111111] border border-gray-800 rounded-lg">
-            <p className="text-gray-400 text-xs mb-2">Demo Credentials:</p>
-            <p className="text-gray-500 text-xs">Username: admin</p>
-            <p className="text-gray-500 text-xs">Password: admin123</p>
-          </div>
         </motion.div>
 
         {/* Back to Home */}

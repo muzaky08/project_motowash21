@@ -1,8 +1,10 @@
 const express = require('express');
+const http = require('http');
 const cors = require('cors');
 const helmet = require('helmet');
 require('dotenv').config();
 const errorHandler = require('./middleware/errorHandler');
+const { initSocket } = require('./socket');
 
 const authRoutes = require('./routes/authRoutes');
 const userRoutes = require('./routes/userRoutes');
@@ -13,6 +15,8 @@ const voucherRoutes = require('./routes/voucherRoutes');
 const messageRoutes = require('./routes/messageRoutes');
 
 const app = express();
+const server = http.createServer(app);
+initSocket(server);
 
 // Security Middleware
 app.use(helmet());
@@ -44,9 +48,9 @@ app.use(errorHandler);
 
 const PORT = process.env.PORT || 5000;
 if (process.env.NODE_ENV !== 'production') {
-  app.listen(PORT, () => {
+  server.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
   });
 }
 
-module.exports = app;
+module.exports = server;
