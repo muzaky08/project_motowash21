@@ -10,9 +10,18 @@ interface ThemeContextType {
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  const [theme, setTheme] = useState<Theme>(() => {
+  const [hasManualTheme, setHasManualTheme] = useState(() => {
     const savedTheme = localStorage.getItem("garasi21-theme");
-    return (savedTheme as Theme) || "dark";
+    return savedTheme === "light" || savedTheme === "dark";
+  });
+
+  const [theme, setTheme] = useState<Theme>(() => {
+    const savedTheme = localStorage.getItem("garasi21-theme") as Theme | null;
+    if (savedTheme === "light" || savedTheme === "dark") {
+      return savedTheme;
+    }
+
+    return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
   });
 
   useEffect(() => {
@@ -24,10 +33,25 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
       root.classList.remove("dark");
     }
 
-    localStorage.setItem("garasi21-theme", theme);
-  }, [theme]);
+    if (hasManualTheme) {
+      localStorage.setItem("garasi21-theme", theme);
+    }
+  }, [hasManualTheme, theme]);
+
+  useEffect(() => {
+    if (hasManualTheme) return;
+
+    const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
+    const handleSystemThemeChange = (event: MediaQueryListEvent) => {
+      setTheme(event.matches ? "dark" : "light");
+    };
+
+    mediaQuery.addEventListener("change", handleSystemThemeChange);
+    return () => mediaQuery.removeEventListener("change", handleSystemThemeChange);
+  }, [hasManualTheme]);
 
   const toggleTheme = () => {
+    setHasManualTheme(true);
     setTheme((prev) => (prev === "light" ? "dark" : "light"));
   };
 
