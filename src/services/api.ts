@@ -5,8 +5,8 @@
  * Migrated from Supabase to custom Node.js/MySQL backend
  */
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
-export const API_ORIGIN = API_BASE_URL.replace(/\/api\/?$/, '');
+const API_BASE_URL = import.meta.env.VITE_API_URL || '/api';
+export const API_ORIGIN = typeof window !== 'undefined' ? window.location.origin : 'http://localhost:5000';
 
 interface RequestOptions extends RequestInit {
   token?: string;
