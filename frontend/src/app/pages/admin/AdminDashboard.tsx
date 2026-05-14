@@ -366,7 +366,12 @@ export default function AdminDashboard() {
               <AdminNotificationButton />
 
               {/* User Profile */}
-              <div className="flex items-center gap-3 px-3 py-1 bg-muted rounded-lg border border-border">
+              <button
+                type="button"
+                onClick={() => navigate(ADMIN_TAB_PATHS.settings)}
+                className="flex items-center gap-3 px-3 py-1 bg-muted hover:bg-[#ff7a00]/10 rounded-lg border border-border transition-all"
+                aria-label="Buka pengaturan admin"
+              >
                 <div className="text-right">
                   <p className="text-sm font-bold text-foreground leading-tight">{user?.name || 'Admin'}</p>
                   <p className="text-xs text-muted-foreground leading-tight capitalize">{user?.role || 'Admin'}</p>
@@ -378,7 +383,7 @@ export default function AdminDashboard() {
                     {user?.name?.charAt(0).toUpperCase() || 'A'}
                   </div>
                 )}
-              </div>
+              </button>
 
               {/* Logout Button */}
               <button
@@ -432,7 +437,15 @@ export default function AdminDashboard() {
             className="md:hidden bg-card border-b border-border px-4 sm:px-6 py-4 space-y-4"
           >
             {/* User Profile Info */}
-            <div className="flex items-center gap-3 pb-4 border-b border-border">
+            <button
+              type="button"
+              onClick={() => {
+                navigate(ADMIN_TAB_PATHS.settings);
+                setIsMobileSidebarOpen(false);
+              }}
+              className="w-full flex items-center gap-3 pb-4 border-b border-border text-left"
+              aria-label="Buka pengaturan admin"
+            >
               <div className="flex-1">
                 <p className="text-sm font-bold text-foreground">{user?.name || 'Admin'}</p>
                 <p className="text-xs text-muted-foreground capitalize">{user?.role || 'Admin'}</p>
@@ -444,7 +457,7 @@ export default function AdminDashboard() {
                   {user?.name?.charAt(0).toUpperCase() || 'A'}
                 </div>
               )}
-            </div>
+            </button>
 
             {/* Theme Toggle */}
             <button

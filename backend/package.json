@@ -5,7 +5,16 @@
   "main": "index.js",
   "scripts": {
     "start": "node index.js",
-    "dev": "nodemon index.js"
+    "dev": "nodemon index.js",
+    "check:schema": "node scripts/check_schema.js",
+    "points:fix": "node scripts/fix_points.js",
+    "points:backfill": "node scripts/backfill_points.js",
+    "migrate:gallery": "node scripts/migrate_gallery.js",
+    "migrate:points": "node scripts/migrate_points.js",
+    "migrate:reviews": "node scripts/migrate_reviews.js",
+    "migrate:vouchers": "node scripts/migrate_vouchers.js",
+    "migrate:ai": "node scripts/update_ai_schema.js",
+    "setup:indexes": "node scripts/setup-db.js"
   },
   "dependencies": {
     "@google/generative-ai": "^0.24.1",

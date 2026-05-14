@@ -313,7 +313,12 @@ export default function UserDashboard() {
             <div className="hidden md:flex items-center gap-3">
               <HeaderActions />
 
-              <div className="flex items-center gap-3 px-3 py-1 bg-muted rounded-lg border border-border">
+              <button
+                type="button"
+                onClick={() => navigate(USER_TAB_PATHS.settings)}
+                className="flex items-center gap-3 px-3 py-1 bg-muted hover:bg-[#ff7a00]/10 rounded-lg border border-border transition-all"
+                aria-label="Buka pengaturan akun"
+              >
                 <div className="text-right">
                   <p className="text-sm font-bold text-foreground leading-tight">{user?.name}</p>
                   <p className="text-xs text-muted-foreground leading-tight capitalize">{user?.role}</p>
@@ -325,7 +330,7 @@ export default function UserDashboard() {
                     {user?.name?.charAt(0).toUpperCase()}
                   </div>
                 )}
-              </div>
+              </button>
 
               <button
                 onClick={() => setShowLogoutConfirm(true)}
@@ -360,12 +365,27 @@ export default function UserDashboard() {
             transition={{ duration: 0.2 }}
             className="md:hidden bg-card border-b border-border px-4 sm:px-6 py-4 space-y-4"
           >
-            <div className="flex items-center gap-3 pb-4 border-b border-border">
+            <button
+              type="button"
+              onClick={() => {
+                navigate(USER_TAB_PATHS.settings);
+                setIsMobileSidebarOpen(false);
+              }}
+              className="w-full flex items-center gap-3 pb-4 border-b border-border text-left"
+              aria-label="Buka pengaturan akun"
+            >
               <div className="flex-1">
                 <p className="text-sm font-bold text-foreground">{user?.name}</p>
                 <p className="text-xs text-muted-foreground capitalize">{user?.role}</p>
               </div>
-            </div>
+              {user?.avatar_url ? (
+                <img src={getAvatarUrl(user.avatar_url)} alt="Avatar" className="w-10 h-10 rounded-full object-cover border border-[#ff7a00]" />
+              ) : (
+                <div className="w-10 h-10 rounded-full bg-[#ff7a00] flex items-center justify-center text-white text-sm font-bold">
+                  {user?.name?.charAt(0).toUpperCase()}
+                </div>
+              )}
+            </button>
 
             <button
               onClick={() => {
