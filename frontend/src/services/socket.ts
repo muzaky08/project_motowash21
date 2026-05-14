@@ -17,7 +17,7 @@ export function getSocket(token: string) {
     socket.disconnect();
   }
 
-  const socketUrl = import.meta.env.VITE_SOCKET_URL || import.meta.env.VITE_API_URL?.replace('/api', '') || 'http://localhost:5005';
+  const socketUrl = import.meta.env.VITE_SOCKET_URL || import.meta.env.VITE_API_URL?.replace('/api', '') || API_ORIGIN;
   
   socket = io(socketUrl, {
     auth: { token },
