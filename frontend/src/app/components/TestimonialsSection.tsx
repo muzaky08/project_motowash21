@@ -3,6 +3,30 @@ import { motion } from "motion/react";
 import { Star, Quote, User } from "lucide-react";
 import { reviewService, getAvatarUrl } from "../../services/api";
 
+const fallbackReviews = [
+  {
+    id: "fallback-1",
+    user_name: "Budi Santoso",
+    rating: 5,
+    comment: "Layanan sangat memuaskan, motor jadi bersih mengkilap seperti baru lagi!",
+    profile_picture: null,
+  },
+  {
+    id: "fallback-2",
+    user_name: "Siti Aminah",
+    rating: 5,
+    comment: "Admin sangat ramah dan proses cuci cepat. Harganya pun sangat terjangkau.",
+    profile_picture: null,
+  },
+  {
+    id: "fallback-3",
+    user_name: "Agus Pratama",
+    rating: 5,
+    comment: "Sudah langganan di sini. Hasilnya tidak pernah mengecewakan. Mantap Garasi.21!",
+    profile_picture: null,
+  },
+];
+
 export default function TestimonialsSection() {
   const [reviews, setReviews] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -17,33 +41,11 @@ export default function TestimonialsSection() {
       if (data && data.length > 0) {
         setReviews(data);
       } else {
-        // Fallback dummy reviews if DB is empty
-        setReviews([
-          {
-            id: 'dummy-1',
-            user_name: 'Budi Santoso',
-            rating: 5,
-            comment: 'Layanan sangat memuaskan, motor jadi bersih mengkilap seperti baru lagi!',
-            profile_picture: null
-          },
-          {
-            id: 'dummy-2',
-            user_name: 'Siti Aminah',
-            rating: 5,
-            comment: 'Admin sangat ramah dan proses cuci cepat. Harganya pun sangat terjangkau.',
-            profile_picture: null
-          },
-          {
-            id: 'dummy-3',
-            user_name: 'Agus Pratama',
-            rating: 5,
-            comment: 'Sudah langganan di sini. Hasilnya tidak pernah mengecewakan. Mantap Garasi.21!',
-            profile_picture: null
-          }
-        ]);
+        setReviews(fallbackReviews);
       }
     } catch (error) {
       console.error("Error loading reviews:", error);
+      setReviews(fallbackReviews);
     } finally {
       setLoading(false);
     }

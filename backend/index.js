@@ -3,6 +3,7 @@ const http = require('http');
 const cors = require('cors');
 const helmet = require('helmet');
 const path = require('path');
+require('dotenv').config({ path: path.join(__dirname, '.env') });
 require('dotenv').config();
 const errorHandler = require('./middleware/errorHandler');
 const { initSocket } = require('./socket');
@@ -71,11 +72,21 @@ app.get('/health', async (req, res) => {
   }
 });
 
+// Serve the frontend build when the backend runs as a normal Node server
+// on hosts such as Hostinger. Vercel serves frontend assets separately.
+if (process.env.NODE_ENV === 'production' && !process.env.VERCEL) {
+  const frontendDistPath = path.join(__dirname, '..', 'frontend', 'dist');
+  app.use(express.static(frontendDistPath));
+  app.get(/^(?!\/api).*/, (req, res) => {
+    res.sendFile(path.join(frontendDistPath, 'index.html'));
+  });
+}
+
 // Error Handler
 app.use(errorHandler);
 
 const PORT = process.env.PORT || 5005;
-if (process.env.NODE_ENV !== 'production') {
+if (!process.env.VERCEL) {
   server.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
   });
@@ -90,4 +101,4 @@ if (process.env.NODE_ENV !== 'production') {
   process.once('SIGTERM', gracefulShutdown); // OS termination
 }
 
-module.exports = server;
+module.exports = app;

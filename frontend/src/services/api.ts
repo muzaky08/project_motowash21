@@ -9,7 +9,7 @@ const API_BASE_URL = import.meta.env.VITE_API_URL || '/api';
 export const API_ORIGIN = typeof window !== 'undefined' ? window.location.origin : 'http://localhost:5005';
 
 // Base URL of the backend server (for constructing static file URLs like avatars)
-export const BACKEND_URL = (import.meta.env.VITE_API_URL || 'http://localhost:5005/api').replace('/api', '');
+export const BACKEND_URL = (import.meta.env.VITE_API_URL || API_ORIGIN).replace(/\/api\/?$/, '');
 
 /**
  * Converts a stored avatar_url (which may be a relative /uploads/... path)

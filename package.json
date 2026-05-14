@@ -3,13 +3,16 @@
   "private": true,
   "version": "1.0.0",
   "description": "Garasi.21 Motowash frontend and backend",
+  "main": "server.js",
   "scripts": {
+    "postinstall": "npm run install:all && npm run build",
+    "start": "node server.js",
     "dev": "npm --prefix frontend run dev",
     "dev:frontend": "npm --prefix frontend run dev",
     "dev:backend": "npm --prefix backend run dev",
-    "build": "vite build",
+    "build": "npm --prefix frontend run build",
     "build:frontend": "npm --prefix frontend run build",
     "start:backend": "npm --prefix backend start",
-    "install:all": "npm install --prefix frontend && npm install --prefix backend"
+    "install:all": "npm install --prefix frontend --include=dev && npm install --prefix backend --omit=dev"
   }
 }

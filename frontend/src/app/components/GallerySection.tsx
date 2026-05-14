@@ -9,6 +9,24 @@ interface GalleryImage {
   title: string;
 }
 
+const fallbackGalleryImages: GalleryImage[] = [
+  {
+    id: -1,
+    url: "https://images.unsplash.com/photo-1763142185961-5a47a399e7a4?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxzcG9ydCUyMG1vdG9yY3ljbGUlMjBzaGluZXxlbnwxfHx8fDE3Nzc2MTc2MTV8MA&ixlib=rb-4.1.0&q=80&w=1080",
+    title: "Sport Bike Polish",
+  },
+  {
+    id: -2,
+    url: "https://images.unsplash.com/photo-1636761358756-ef34b4ef036a?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxtb3RvcmN5Y2xlJTIwcG9saXNoJTIwZGV0YWlsfGVufDF8fHx8MTc3NzYxNzYxNnww&ixlib=rb-4.1.0&q=80&w=1080",
+    title: "Detail Cleaning",
+  },
+  {
+    id: -3,
+    url: "https://images.unsplash.com/photo-1558981806-ec527fa84c39?auto=format&fit=crop&w=900&q=80",
+    title: "Premium Wash",
+  },
+];
+
 export default function GallerySection() {
   const [ref, isInView] = useInView({ threshold: 0.1 });
   const [images, setImages] = useState<GalleryImage[]>([]);
@@ -18,9 +36,10 @@ export default function GallerySection() {
     const fetchGallery = async () => {
       try {
         const data = await galleryService.getGallery();
-        setImages(data);
+        setImages(data.length > 0 ? data : fallbackGalleryImages);
       } catch (error) {
         console.error("Error fetching gallery:", error);
+        setImages(fallbackGalleryImages);
       } finally {
         setIsLoading(false);
       }
