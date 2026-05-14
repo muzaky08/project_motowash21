@@ -1,7 +1,7 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router";
 import { motion } from "motion/react";
-import { Mail, Lock, User, Phone } from "lucide-react";
+import { Mail, Lock, User, Phone, Eye, EyeOff } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "../../contexts/AuthContext";
 import { authService } from "../../../services/api";
@@ -12,12 +12,20 @@ export default function UserAuthPage() {
   const { login } = useAuth();
   const [isLogin, setIsLogin] = useState(true);
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   const [formData, setFormData] = useState({
     email: "",
     password: "",
     name: "",
     phone: "",
   });
+
+  useEffect(() => {
+    const savedEmail = localStorage.getItem('lastUserEmail');
+    if (savedEmail) {
+      setFormData(prev => ({ ...prev, email: savedEmail }));
+    }
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -32,6 +40,10 @@ export default function UserAuthPage() {
         });
 
         login(data.token, data.user);
+        
+        // Update saved info
+        localStorage.setItem('lastUserEmail', data.user.email);
+
         toast.success("Login berhasil!");
         navigate("/user/dashboard");
       } else {
@@ -79,6 +91,7 @@ export default function UserAuthPage() {
           >
             <Logo variant="full" />
           </motion.div>
+
           <h2 className="text-foreground text-2xl font-bold mb-2">
             {isLogin ? "Login" : "Daftar"}
           </h2>
@@ -153,14 +166,23 @@ export default function UserAuthPage() {
                 <Lock size={20} className="text-[#ff7a00]" />
                 Password
               </label>
-              <input
-                type="password"
-                value={formData.password}
-                onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                placeholder="••••••••"
-                className="w-full bg-input-background border-2 border-border rounded-lg px-4 py-3 text-foreground placeholder-muted-foreground focus:border-[#ff7a00] focus:outline-none transition-colors"
-                required
-              />
+              <div className="relative">
+                <input
+                  type={showPassword ? "text" : "password"}
+                  value={formData.password}
+                  onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                  placeholder="••••••••"
+                  className="w-full bg-input-background border-2 border-border rounded-lg px-4 py-3 pr-12 text-foreground placeholder-muted-foreground focus:border-[#ff7a00] focus:outline-none transition-colors"
+                  required
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-[#ff7a00] transition-colors"
+                >
+                  {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                </button>
+              </div>
             </div>
 
             {/* Submit Button */}

@@ -44,7 +44,7 @@ export default function AboutSection() {
               transition={{ delay: 0.4, duration: 0.8 }}
               className="text-gray-600 dark:text-gray-400 text-base sm:text-lg leading-relaxed mb-8"
             >
-              Garasi.21 Motowash adalah tempat cuci motor premium di Kemiri City yang memberikan perawatan terbaik untuk motor Anda menggunakan metode profesional dan produk berkualitas.
+              Garasi.21 Motowash adalah tempat cuci motor premium di Kota Serang yang memberikan perawatan terbaik untuk motor Anda menggunakan metode profesional dan produk berkualitas.
             </motion.p>
 
             <motion.div

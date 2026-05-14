@@ -3,7 +3,7 @@ import { motion } from "motion/react";
 import { User, Mail, Phone, MapPin, Camera, Lock, Save } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "../../contexts/AuthContext";
-import { userService } from "../../../services/api";
+import { userService, getAvatarUrl } from "../../../services/api";
 
 export default function UserSettings({ hideTitle = false }: { hideTitle?: boolean }) {
   const { user, token, updateUser } = useAuth();
@@ -38,13 +38,31 @@ export default function UserSettings({ hideTitle = false }: { hideTitle?: boolea
     const file = e.target.files?.[0];
     if (!file) return;
 
+    // Validasi ukuran file (max 2MB)
+    if (file.size > 2 * 1024 * 1024) {
+      toast.error("Ukuran file maksimal 2MB!");
+      e.target.value = "";
+      return;
+    }
+
+    if (!token) {
+      toast.error("Sesi tidak valid, silakan login kembali.");
+      return;
+    }
+
     setUploadingAvatar(true);
-    // Note: Integration with custom backend upload would require Multer/Form-data
-    // For now, we'll simulate it by using a local preview URL or a placeholder
-    const previewUrl = URL.createObjectURL(file);
-    setProfile({ ...profile, avatar_url: previewUrl });
-    toast.info("Fitur upload file ke server memerlukan konfigurasi Multer di backend.");
-    setUploadingAvatar(false);
+    try {
+      const result = await userService.uploadAvatar(file, token);
+      // Simpan URL relatif dari server ke state dan AuthContext
+      setProfile((prev) => ({ ...prev, avatar_url: result.avatar_url }));
+      updateUser({ avatar_url: result.avatar_url });
+      toast.success("Foto profil berhasil diperbarui!");
+    } catch (error: any) {
+      toast.error(error.message || "Gagal mengupload foto profil.");
+    } finally {
+      setUploadingAvatar(false);
+      e.target.value = "";
+    }
   };
 
   const handleProfileUpdate = async (e: React.FormEvent) => {
@@ -80,6 +98,9 @@ export default function UserSettings({ hideTitle = false }: { hideTitle?: boolea
     toast.info("Fitur ubah password dapat diimplementasikan di route /auth/update-password");
   };
 
+  // Tampilkan avatar: konversi path relatif ke URL penuh
+  const displayAvatar = getAvatarUrl(profile.avatar_url);
+
   return (
     <div className="space-y-6 max-w-3xl">
       {!hideTitle && <h2 className="text-xl sm:text-2xl font-bold text-foreground">Pengaturan Akun</h2>}
@@ -93,11 +114,11 @@ export default function UserSettings({ hideTitle = false }: { hideTitle?: boolea
         <h3 className="text-base sm:text-lg font-semibold text-foreground mb-4">Foto Profil</h3>
         <div className="flex flex-col sm:flex-row items-center sm:items-start gap-4 sm:gap-6">
           <div className="relative">
-            {profile.avatar_url ? (
+            {displayAvatar ? (
               <img
-                src={profile.avatar_url}
+                src={displayAvatar}
                 alt="Avatar"
-                className="w-20 h-20 sm:w-24 sm:h-24 rounded-full object-cover"
+                className="w-20 h-20 sm:w-24 sm:h-24 rounded-full object-cover border-2 border-[#ff7a00]"
               />
             ) : (
               <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-full bg-[#ff7a00] flex items-center justify-center">
@@ -105,25 +126,25 @@ export default function UserSettings({ hideTitle = false }: { hideTitle?: boolea
               </div>
             )}
             {uploadingAvatar && (
-              <div className="absolute inset-0 bg-black/50 rounded-full flex items-center justify-center">
+              <div className="absolute inset-0 bg-black/60 rounded-full flex items-center justify-center">
                 <div className="animate-spin rounded-full h-8 w-8 border-2 border-white border-t-transparent"></div>
               </div>
             )}
           </div>
           <div className="text-center sm:text-left">
-            <label className="cursor-pointer bg-[#ff7a00] hover:bg-[#ff7a00]/90 text-white px-4 py-2 rounded-lg inline-flex items-center gap-2 transition-colors text-sm sm:text-base">
+            <label className={`cursor-pointer bg-[#ff7a00] hover:bg-[#ff7a00]/90 text-white px-4 py-2 rounded-lg inline-flex items-center gap-2 transition-colors text-sm sm:text-base ${uploadingAvatar ? 'opacity-60 cursor-not-allowed' : ''}`}>
               <Camera size={18} />
-              Upload Foto
+              {uploadingAvatar ? "Mengupload..." : "Upload Foto"}
               <input
                 type="file"
-                accept="image/*"
+                accept="image/jpeg,image/jpg,image/png,image/webp"
                 onChange={handleAvatarUpload}
                 className="hidden"
                 disabled={uploadingAvatar}
               />
             </label>
             <p className="text-muted-foreground text-sm mt-2">
-              JPG, PNG maksimal 2MB
+              JPG, PNG, WebP — maksimal 2MB
             </p>
           </div>
         </div>

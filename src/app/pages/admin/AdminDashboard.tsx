@@ -15,11 +15,12 @@ import {
   Settings,
   Menu,
   X,
+  Home,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useTheme } from "../../contexts/ThemeContext";
 import { useAuth } from "../../contexts/AuthContext";
-import { bookingService, chatService } from "../../../services/api";
+import { bookingService, chatService, getAvatarUrl } from "../../../services/api";
 import { getSocket } from "../../../services/socket";
 import DashboardStats from "../../components/admin/DashboardStats";
 import BookingManagement from "../../components/admin/BookingManagement";
@@ -39,12 +40,12 @@ const ADMIN_TAB_PATHS: Record<TabType, string> = {
   services: "/admin/dashboard/services",
   gallery: "/admin/dashboard/gallery",
   vouchers: "/admin/dashboard/vouchers",
-  chat: "/admin/chat",
+  chat: "/admin/dashboard/chat",
   settings: "/admin/dashboard/settings",
 };
 
 function getAdminTabFromPath(pathname: string): TabType {
-  if (pathname === "/admin/chat") return "chat";
+  if (pathname.includes("/chat")) return "chat";
   if (pathname.includes("/bookings")) return "bookings";
   if (pathname.includes("/services")) return "services";
   if (pathname.includes("/gallery")) return "gallery";
@@ -178,7 +179,7 @@ export default function AdminDashboard() {
           created_at: conversation.last_message_at,
           type: "chat",
           unread: Number(conversation.unread_count || 0) > 0 && !readIds.has(id),
-          path: "/admin/chat",
+          path: "/admin/dashboard/chat",
         };
       });
 
@@ -222,8 +223,8 @@ export default function AdminDashboard() {
     setIsLoggingOut(true);
     try {
       // Store avatar before logout
-      if (user?.avatar_url) {
-        sessionStorage.setItem('lastUserAvatar', user.avatar_url);
+      if (user?.email) {
+        localStorage.setItem('lastAdminEmail', user.email);
       }
       logout();
       navigate("/admin");
@@ -322,6 +323,14 @@ export default function AdminDashboard() {
     </div>
   );
 
+  if (activeTab === "chat") {
+    return (
+      <div className="h-screen w-full bg-background flex flex-col">
+        <AdminChat standalone onBack={() => navigate('/admin/dashboard')} />
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-background transition-colors duration-300 flex flex-col">
       {/* Header */}
@@ -329,7 +338,15 @@ export default function AdminDashboard() {
         <div className="px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
             {/* Logo */}
-            <Logo variant="full" />
+            <div className="flex items-center gap-4">
+              <Logo variant="full" clickable onClick={() => navigate("/")} />
+              <button 
+                onClick={() => navigate("/")}
+                className="hidden sm:flex items-center gap-2 text-xs font-bold text-muted-foreground hover:text-foreground transition-colors bg-muted/50 px-3 py-1.5 rounded-lg border border-border"
+              >
+                <Home size={14} /> Beranda
+              </button>
+            </div>
 
             {/* Desktop Actions */}
             <div className="hidden md:flex items-center gap-3">
@@ -355,7 +372,7 @@ export default function AdminDashboard() {
                   <p className="text-xs text-muted-foreground leading-tight capitalize">{user?.role || 'Admin'}</p>
                 </div>
                 {user?.avatar_url ? (
-                  <img src={user.avatar_url} alt="Avatar" className="w-8 h-8 rounded-full object-cover border border-[#ff7a00]" />
+                  <img src={getAvatarUrl(user.avatar_url)} alt="Avatar" className="w-8 h-8 rounded-full object-cover border border-[#ff7a00]" />
                 ) : (
                   <div className="w-8 h-8 rounded-full bg-[#ff7a00] flex items-center justify-center text-white text-xs font-bold">
                     {user?.name?.charAt(0).toUpperCase() || 'A'}
@@ -421,7 +438,7 @@ export default function AdminDashboard() {
                 <p className="text-xs text-muted-foreground capitalize">{user?.role || 'Admin'}</p>
               </div>
               {user?.avatar_url ? (
-                <img src={user.avatar_url} alt="Avatar" className="w-10 h-10 rounded-full object-cover border border-[#ff7a00]" />
+                <img src={getAvatarUrl(user.avatar_url)} alt="Avatar" className="w-10 h-10 rounded-full object-cover border border-[#ff7a00]" />
               ) : (
                 <div className="w-10 h-10 rounded-full bg-[#ff7a00] flex items-center justify-center text-white text-sm font-bold">
                   {user?.name?.charAt(0).toUpperCase() || 'A'}
@@ -489,8 +506,11 @@ export default function AdminDashboard() {
             </div>
 
             {/* Mobile Tabs - Scrollable horizontal */}
-            <div className="sm:hidden overflow-x-auto -mx-4 px-4">
-              <div className="flex gap-2 pb-2">
+            <div className="sm:hidden -mx-4 overflow-hidden">
+              <div 
+                className="flex items-center gap-2 overflow-x-auto px-4 pb-4 no-scrollbar" 
+                style={{ WebkitOverflowScrolling: 'touch', scrollbarWidth: 'none' }}
+              >
                 {tabs.map((tab) => (
                   <button
                     key={tab.id}
@@ -498,14 +518,14 @@ export default function AdminDashboard() {
                       navigate(ADMIN_TAB_PATHS[tab.id]);
                       setIsMobileSidebarOpen(false);
                     }}
-                    className={`flex items-center gap-2 px-3 py-2 rounded-lg font-semibold transition-all text-sm whitespace-nowrap flex-shrink-0 ${
+                    className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold transition-all text-[11px] whitespace-nowrap flex-shrink-0 border ${
                       activeTab === tab.id
-                        ? "bg-[#ff7a00] text-white shadow-lg"
-                        : "bg-card text-muted-foreground hover:bg-muted border border-border"
+                        ? "bg-[#ff7a00] text-white shadow-[0_4px_12px_rgba(255,122,0,0.3)] border-[#ff7a00]"
+                        : "bg-card text-muted-foreground hover:bg-muted border-border"
                     }`}
                   >
-                    <tab.icon size={18} />
-                    <span className="text-xs">{tab.name}</span>
+                    <tab.icon size={14} />
+                    <span>{tab.name}</span>
                   </button>
                 ))}
               </div>

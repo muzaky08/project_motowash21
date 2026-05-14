@@ -136,11 +136,7 @@ export const router = createBrowserRouter([
   },
   {
     path: "/chat",
-    element: (
-      <AuthRoute role="user">
-        <UserChatPage />
-      </AuthRoute>
-    ),
+    element: <Navigate to="/user/dashboard/chat" replace />,
   },
   {
     path: "/dashboard",

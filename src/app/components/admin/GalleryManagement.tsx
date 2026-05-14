@@ -1,77 +1,86 @@
 import { useState, useEffect } from "react";
 import { motion } from "motion/react";
-import { Plus, Trash2, Upload } from "lucide-react";
+import { Plus, Trash2, Upload, Pencil } from "lucide-react";
 import { toast } from "sonner";
+import { galleryService } from "../../../services/api";
+import { useAuth } from "../../contexts/AuthContext";
 
 interface GalleryItem {
   id: number;
   url: string;
   title: string;
-  createdAt: string;
+  created_at: string;
 }
 
 export default function GalleryManagement() {
+  const { token } = useAuth();
   const [gallery, setGallery] = useState<GalleryItem[]>([]);
   const [isAdding, setIsAdding] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editingId, setEditingId] = useState<number | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
   const [newImage, setNewImage] = useState({ url: "", title: "" });
 
   useEffect(() => {
     loadGallery();
   }, []);
 
-  const loadGallery = () => {
-    const saved = localStorage.getItem("gallery");
-    if (saved) {
-      setGallery(JSON.parse(saved));
-    } else {
-      // Default gallery images
-      const defaultGallery: GalleryItem[] = [
-        {
-          id: 1,
-          url: "https://images.unsplash.com/photo-1763142185961-5a47a399e7a4?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxzcG9ydCUyMG1vdG9yY3ljbGUlMjBzaGluZXxlbnwxfHx8fDE3Nzc2MTc2MTV8MA&ixlib=rb-4.1.0&q=80&w=1080",
-          title: "Sport Bike Polish",
-          createdAt: new Date().toISOString(),
-        },
-        {
-          id: 2,
-          url: "https://images.unsplash.com/photo-1636761358756-ef34b4ef036a?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxtb3RvcmN5Y2xlJTIwcG9saXNoJTIwZGV0YWlsfGVufDF8fHx8MTc3NzYxNzYxNnww&ixlib=rb-4.1.0&q=80&w=1080",
-          title: "Detail Cleaning",
-          createdAt: new Date().toISOString(),
-        },
-      ];
-      setGallery(defaultGallery);
-      localStorage.setItem("gallery", JSON.stringify(defaultGallery));
+  const loadGallery = async () => {
+    try {
+      setIsLoading(true);
+      const data = await galleryService.getGallery();
+      setGallery(data);
+    } catch (error) {
+      console.error("Error loading gallery:", error);
+      toast.error("Gagal memuat galeri");
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  const handleDelete = (id: number) => {
+  const handleDelete = async (id: number) => {
     if (confirm("Yakin ingin menghapus foto ini?")) {
-      const updated = gallery.filter((item) => item.id !== id);
-      localStorage.setItem("gallery", JSON.stringify(updated));
-      setGallery(updated);
-      toast.success("Foto berhasil dihapus!");
+      try {
+        await galleryService.deleteGallery(id, token!);
+        setGallery(gallery.filter((item) => item.id !== id));
+        toast.success("Foto berhasil dihapus!");
+      } catch (error: any) {
+        toast.error(error.message || "Gagal menghapus foto");
+      }
     }
   };
 
-  const handleAdd = () => {
+  const handleStartEdit = (item: GalleryItem) => {
+    setNewImage({ url: item.url, title: item.title });
+    setEditingId(item.id);
+    setIsEditing(true);
+    setIsAdding(true);
+  };
+
+  const handleSubmit = async () => {
     if (!newImage.url || !newImage.title) {
       toast.error("Mohon lengkapi URL dan judul foto!");
       return;
     }
 
-    const item: GalleryItem = {
-      id: Date.now(),
-      url: newImage.url,
-      title: newImage.title,
-      createdAt: new Date().toISOString(),
-    };
-
-    const updated = [...gallery, item];
-    localStorage.setItem("gallery", JSON.stringify(updated));
-    setGallery(updated);
-    setIsAdding(false);
-    setNewImage({ url: "", title: "" });
-    toast.success("Foto berhasil ditambahkan!");
+    try {
+      if (isEditing && editingId) {
+        const updatedItem = await galleryService.updateGallery(editingId, newImage, token!);
+        setGallery(gallery.map(item => item.id === editingId ? { ...item, ...newImage } : item));
+        toast.success("Foto berhasil diperbarui!");
+      } else {
+        const addedItem = await galleryService.addGallery(newImage, token!);
+        setGallery([addedItem, ...gallery]);
+        toast.success("Foto berhasil ditambahkan!");
+      }
+      
+      setIsAdding(false);
+      setIsEditing(false);
+      setEditingId(null);
+      setNewImage({ url: "", title: "" });
+    } catch (error: any) {
+      toast.error(error.message || "Gagal memproses foto");
+    }
   };
 
   return (
@@ -121,14 +130,23 @@ export default function GalleryManagement() {
             {/* Overlay */}
             <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity">
               <div className="absolute bottom-0 left-0 right-0 p-4">
-                <h3 className="text-white font-bold mb-2">{item.title}</h3>
-                <button
-                  onClick={() => handleDelete(item.id)}
-                  className="flex items-center gap-2 bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg transition-colors text-sm"
-                >
-                  <Trash2 size={16} />
-                  Hapus
-                </button>
+                <h3 className="text-white font-bold mb-3 text-sm line-clamp-1">{item.title}</h3>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => handleStartEdit(item)}
+                    className="flex-1 flex items-center justify-center gap-2 bg-blue-500 hover:bg-blue-600 text-white px-3 py-2 rounded-lg transition-colors text-sm font-medium"
+                  >
+                    <Pencil size={14} />
+                    Edit
+                  </button>
+                  <button
+                    onClick={() => handleDelete(item.id)}
+                    className="flex-1 flex items-center justify-center gap-2 bg-red-500 hover:bg-red-600 text-white px-3 py-2 rounded-lg transition-colors text-sm font-medium"
+                  >
+                    <Trash2 size={14} />
+                    Hapus
+                  </button>
+                </div>
               </div>
             </div>
           </motion.div>
@@ -144,16 +162,32 @@ export default function GalleryManagement() {
 
       {/* Add Modal */}
       {isAdding && (
-        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
+        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4 overflow-y-auto">
           <motion.div
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
-            className="bg-card border border-border rounded-xl p-6 max-w-md w-full"
+            className="bg-card border border-border rounded-xl p-6 max-w-md w-full my-auto"
           >
-            <h3 className="text-xl font-bold text-foreground mb-4">Upload Foto Baru</h3>
+            <div className="flex justify-between items-center mb-4">
+                <h3 className="text-xl font-bold text-foreground">
+                  {isEditing ? "Edit Foto" : "Upload Foto Baru"}
+                </h3>
+                <button 
+                  onClick={() => {
+                    setIsAdding(false);
+                    setIsEditing(false);
+                    setEditingId(null);
+                    setNewImage({ url: "", title: "" });
+                  }}
+                className="text-muted-foreground hover:text-foreground transition-colors"
+              >
+                <Plus className="rotate-45" size={24} />
+              </button>
+            </div>
+            
             <div className="space-y-4">
               <div>
-                <label className="block text-foreground mb-2">Judul Foto</label>
+                <label className="block text-foreground mb-2 text-sm font-medium">Judul Foto</label>
                 <input
                   type="text"
                   value={newImage.title}
@@ -164,7 +198,7 @@ export default function GalleryManagement() {
               </div>
 
               <div>
-                <label className="block text-foreground mb-2">URL Gambar</label>
+                <label className="block text-foreground mb-2 text-sm font-medium">URL Gambar</label>
                 <input
                   type="url"
                   value={newImage.url}
@@ -180,35 +214,35 @@ export default function GalleryManagement() {
               {/* Preview */}
               {newImage.url && (
                 <div>
-                  <label className="block text-foreground mb-2">Preview</label>
-                  <div className="aspect-square rounded-lg overflow-hidden border border-border">
+                  <label className="block text-foreground mb-2 text-sm font-medium">Preview</label>
+                  <div className="aspect-video rounded-lg overflow-hidden border border-border bg-black/20">
                     <img
                       src={newImage.url}
                       alt="Preview"
                       className="w-full h-full object-cover"
                       onError={(e) => {
                         (e.target as HTMLImageElement).src =
-                          "https://via.placeholder.com/400x400?text=Invalid+URL";
+                          "https://via.placeholder.com/400x225?text=Invalid+URL";
                       }}
                     />
                   </div>
                 </div>
               )}
 
-              <div className="flex gap-3 mt-6">
+              <div className="flex gap-3 pt-2">
                 <button
-                  onClick={handleAdd}
-                  className="flex-1 bg-[#ff7a00] hover:bg-[#ff7a00]/90 text-white px-4 py-3 rounded-lg transition-colors flex items-center justify-center gap-2"
+                  onClick={handleSubmit}
+                  className="flex-1 bg-[#ff7a00] hover:bg-[#ff7a00]/90 text-white px-4 py-3 rounded-lg transition-colors flex items-center justify-center gap-2 font-semibold"
                 >
-                  <Upload size={18} />
-                  Upload
+                  {isEditing ? <Pencil size={18} /> : <Upload size={18} />}
+                  {isEditing ? "Simpan Perubahan" : "Upload"}
                 </button>
                 <button
                   onClick={() => {
                     setIsAdding(false);
                     setNewImage({ url: "", title: "" });
                   }}
-                  className="flex-1 bg-gray-700 hover:bg-gray-600 text-white px-4 py-3 rounded-lg transition-colors"
+                  className="flex-1 bg-gray-700 hover:bg-gray-600 text-white px-4 py-3 rounded-lg transition-colors font-semibold"
                 >
                   Batal
                 </button>

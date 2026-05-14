@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { motion } from "motion/react";
 import { Calendar, Ticket, MessageCircle, TrendingUp, Bell } from "lucide-react";
 import { useAuth } from "../../contexts/AuthContext";
-import { bookingService, notificationService, voucherService } from "../../../services/api";
+import { bookingService, notificationService, voucherService, pointsService, chatService } from "../../../services/api";
 import { getSocket } from "../../../services/socket";
 
 interface UserDashboardHomeProps {
@@ -24,6 +24,7 @@ export default function UserDashboardHome({
   const [vouchers, setVouchers] = useState<any[]>([]);
   const [notifications, setNotifications] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [points, setPoints] = useState<any>({ total_points: 0 });
 
   useEffect(() => {
     loadDashboardData();
@@ -54,14 +55,20 @@ export default function UserDashboardHome({
   const loadDashboardData = async () => {
     if (!token) return;
     try {
-      const [bookingData, voucherData, notificationData] = await Promise.all([
+      // Fetch data including messages for activity log
+      const [bookingData, voucherRes, notificationData, pointsRes, messageData] = await Promise.all([
         bookingService.getUserBookings(token),
         voucherService.getActiveVouchers(),
         notificationService.getNotifications(token),
+        pointsService.getUserPoints(token),
+        chatService.getConversations(token) // Fetch recent chat activity
       ]);
+      
       setBookings(bookingData || []);
-      setVouchers(voucherData || []);
+      // Include upcoming vouchers in the count for better UX
+      setVouchers(voucherRes.data || []);
       setNotifications(notificationData || []);
+      setPoints(pointsRes.data);
     } catch (error) {
       console.error("Error loading dashboard data:", error);
     } finally {
@@ -74,31 +81,31 @@ export default function UserDashboardHome({
     [bookings],
   );
 
-  const loyaltyPoints = useMemo(
-    () => bookings.filter((booking) => booking.status === "Selesai").length * 10,
-    [bookings],
-  );
-
   const activities = useMemo(() => {
+    // 1. Booking Activities
     const bookingActivities = bookings.slice(0, 5).map((booking) => ({
       id: `booking-${booking.id}`,
       icon: Calendar,
       title: `Booking ${booking.service}`,
       description: `Status: ${booking.status} - ${booking.date} ${booking.time}`,
       created_at: booking.updated_at || booking.created_at,
+      type: 'booking'
     }));
 
-    const notificationActivities = notifications.slice(0, 8).map((notification) => ({
+    // 2. Notification Activities (includes profile updates, receipts, etc.)
+    const notificationActivities = notifications.slice(0, 10).map((notification) => ({
       id: `notification-${notification.id}`,
       icon: notification.type === "chat" ? MessageCircle : notification.type === "booking" ? Calendar : Bell,
       title: notification.title,
       description: notification.message,
       created_at: notification.created_at,
+      type: notification.type
     }));
 
+    // Merge and Sort
     return [...bookingActivities, ...notificationActivities]
       .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
-      .slice(0, 8);
+      .slice(0, 10);
   }, [bookings, notifications]);
 
   const stats = [
@@ -126,9 +133,10 @@ export default function UserDashboardHome({
     {
       icon: TrendingUp,
       title: "Poin Loyalitas",
-      value: loading ? "..." : String(loyaltyPoints),
+      value: loading ? "..." : String(points.total_points),
       color: "bg-orange-500",
-      path: "/user/dashboard/bookings",
+      path: "/user/dashboard/vouchers",
+      tooltip: "Kumpulkan 100 poin untuk voucher diskon 10%"
     },
   ];
 
@@ -156,12 +164,18 @@ export default function UserDashboardHome({
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: index * 0.1 }}
-            className="bg-card border border-border rounded-xl p-6 text-left hover:shadow-lg hover:border-[#ff7a00]/60 transition-all"
+            title={stat.tooltip}
+            className="bg-card border border-border rounded-xl p-6 text-left hover:shadow-lg hover:border-[#ff7a00]/60 transition-all relative group"
           >
             <div className="flex items-center justify-between mb-4">
               <div className={`${stat.color} p-3 rounded-lg`}>
                 <stat.icon className="text-white" size={24} />
               </div>
+              {stat.tooltip && (
+                <span className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity bg-foreground text-background text-[10px] px-2 py-1 rounded-md pointer-events-none whitespace-nowrap z-50">
+                  {stat.tooltip}
+                </span>
+              )}
             </div>
             <h3 className="text-2xl font-bold text-foreground mb-1">{stat.value}</h3>
             <p className="text-muted-foreground text-sm">{stat.title}</p>

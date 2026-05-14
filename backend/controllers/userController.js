@@ -1,6 +1,8 @@
 const db = require('../db/db');
 const { v4: uuidv4 } = require('uuid');
 const { getIO } = require('../socket');
+const path = require('path');
+const fs = require('fs');
 
 exports.updateProfile = async (req, res, next) => {
   const { name, phone, location, avatar_url } = req.body;
@@ -35,10 +37,57 @@ exports.updateProfile = async (req, res, next) => {
   }
 };
 
+exports.uploadAvatar = async (req, res, next) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ message: 'Tidak ada file yang diunggah' });
+    }
+
+    // Hapus avatar lama jika ada (bukan URL eksternal)
+    const [users] = await db.execute('SELECT avatar_url FROM users WHERE id = ?', [req.user.id]);
+    const oldAvatar = users[0]?.avatar_url;
+    if (oldAvatar && oldAvatar.startsWith('/uploads/')) {
+      const oldPath = path.join(__dirname, '..', oldAvatar);
+      if (fs.existsSync(oldPath)) {
+        fs.unlinkSync(oldPath);
+      }
+    }
+
+    // Simpan path relatif ke database
+    const avatarUrl = `/uploads/${req.file.filename}`;
+    await db.execute(
+      'UPDATE users SET avatar_url = ?, updated_at = NOW() WHERE id = ?',
+      [avatarUrl, req.user.id]
+    );
+
+    res.json({
+      message: 'Avatar berhasil diperbarui',
+      avatar_url: avatarUrl,
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
 exports.getAllUsers = async (req, res, next) => {
   try {
-    const [users] = await db.execute('SELECT id, email, name, role, created_at FROM users');
+    const [users] = await db.execute(
+      'SELECT id, email, name, role, avatar_url, phone, location, created_at FROM users'
+    );
     res.json(users);
+  } catch (err) {
+    next(err);
+  }
+};
+
+exports.updateAIConfig = async (req, res, next) => {
+  const { ai_enabled } = req.body;
+  try {
+    await db.execute(
+      'UPDATE users SET ai_enabled = ? WHERE id = ?',
+      [ai_enabled, req.user.id]
+    );
+    res.json({ message: 'AI configuration updated', ai_enabled });
   } catch (err) {
     next(err);
   }

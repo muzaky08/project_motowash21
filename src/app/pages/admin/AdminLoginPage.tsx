@@ -1,7 +1,7 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router";
 import { motion } from "motion/react";
-import { Lock, User } from "lucide-react";
+import { Lock, User, Eye, EyeOff } from "lucide-react";
 import { toast } from "sonner";
 
 import { useAuth } from "../../contexts/AuthContext";
@@ -12,18 +12,26 @@ export default function AdminLoginPage() {
   const navigate = useNavigate();
   const { login } = useAuth();
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   const [credentials, setCredentials] = useState({
     username: "", // Map to email for the API
     password: "",
   });
+
+  useEffect(() => {
+    const savedEmail = localStorage.getItem('lastAdminEmail');
+    if (savedEmail) {
+      // Extract username from email (e.g., admin@garasi21.com -> admin)
+      const username = savedEmail.split('@')[0];
+      setCredentials(prev => ({ ...prev, username }));
+    }
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
 
     try {
-      // Assuming admin login uses email format for backend
-      // Map 'admin' username to 'admin@garasi21.com' for demo if needed
       const email = credentials.username.includes('@') 
         ? credentials.username 
         : `${credentials.username}@garasi21.com`;
@@ -39,6 +47,9 @@ export default function AdminLoginPage() {
       }
 
       login(data.token, data.user);
+      // Update saved info
+      localStorage.setItem('lastAdminEmail', data.user.email);
+      
       toast.success("Login berhasil!");
       navigate("/admin/dashboard");
     } catch (error: any) {
@@ -72,6 +83,7 @@ export default function AdminLoginPage() {
           >
             <Logo variant="full" />
           </motion.div>
+          
           <h2 className="text-foreground text-2xl font-bold mb-2">Admin Login</h2>
           <p className="text-muted-foreground">Masuk ke dashboard admin</p>
         </div>
@@ -108,24 +120,34 @@ export default function AdminLoginPage() {
                 <Lock size={20} className="text-[#ff7a00]" />
                 Password
               </label>
-              <input
-                type="password"
-                value={credentials.password}
-                onChange={(e) =>
-                  setCredentials({ ...credentials, password: e.target.value })
-                }
-                placeholder="••••••••"
-                className="w-full bg-[#111111] border-2 border-gray-800 rounded-lg px-4 py-3 text-white placeholder-gray-500 focus:border-[#ff7a00] focus:outline-none transition-colors"
-                autoComplete="current-password"
-              />
+              <div className="relative">
+                <input
+                  type={showPassword ? "text" : "password"}
+                  value={credentials.password}
+                  onChange={(e) =>
+                    setCredentials({ ...credentials, password: e.target.value })
+                  }
+                  placeholder="••••••••"
+                  className="w-full bg-[#111111] border-2 border-gray-800 rounded-lg px-4 py-3 pr-12 text-white placeholder-gray-500 focus:border-[#ff7a00] focus:outline-none transition-colors"
+                  autoComplete="current-password"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 hover:text-[#ff7a00] transition-colors"
+                >
+                  {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                </button>
+              </div>
             </div>
 
             {/* Submit Button */}
             <button
               type="submit"
-              className="w-full bg-[#ff7a00] hover:bg-[#ff7a00]/90 text-white px-8 py-4 rounded-lg font-semibold text-lg transition-all duration-300 transform hover:scale-103 shadow-lg hover:shadow-[#ff7a00]/20"
+              disabled={loading}
+              className="w-full bg-[#ff7a00] hover:bg-[#ff7a00]/90 text-white px-8 py-4 rounded-lg font-semibold text-lg transition-all duration-300 transform hover:scale-103 shadow-lg hover:shadow-[#ff7a00]/20 disabled:opacity-50"
             >
-              Login
+              {loading ? "Logging in..." : "Login"}
             </button>
           </form>
         </motion.div>

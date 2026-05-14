@@ -138,6 +138,15 @@ exports.sendMessage = async (req, res, next) => {
     }
 
     res.status(201).json(payload);
+
+    // Trigger AI automated response if message is sent to admin
+    if (receiver_id === 'admin-uuid-1') {
+      const { handleAIResponse } = require('./aiController');
+      // Delay response to simulate thinking/typing
+      setTimeout(() => {
+        handleAIResponse(message, sender_id);
+      }, 1500);
+    }
   } catch (err) {
     next(err);
   }

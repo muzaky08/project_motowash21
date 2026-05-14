@@ -7,6 +7,7 @@ import ServicesSection from "../components/ServicesSection";
 import FeaturesSection from "../components/FeaturesSection";
 import GallerySection from "../components/GallerySection";
 import BookingSection from "../components/BookingSection";
+import TestimonialsSection from "../components/TestimonialsSection";
 import ContactSection from "../components/ContactSection";
 import Footer from "../components/Footer";
 
@@ -47,6 +48,7 @@ export default function HomePage() {
       <ServicesSection />
       <FeaturesSection />
       <GallerySection />
+      <TestimonialsSection />
       <BookingSection />
       <ContactSection />
       <Footer />

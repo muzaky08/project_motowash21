@@ -4,12 +4,14 @@ import { Menu, X, Sun, Moon } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { useTheme } from "../contexts/ThemeContext";
 import Logo from "./Logo";
+import { useAuth } from "../contexts/AuthContext";
 
 export default function Navbar() {
   const navigate = useNavigate();
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const { theme, toggleTheme } = useTheme();
+  const { user, token } = useAuth();
 
   useEffect(() => {
     const handleScroll = () => {
@@ -26,10 +28,24 @@ export default function Navbar() {
     { name: "Layanan", href: "#services" },
     { name: "Keunggulan", href: "#features" },
     { name: "Galeri", href: "#gallery" },
+    { name: "Testimoni", href: "#testimonials" },
     { name: "Booking", href: "#booking" },
     { name: "Kontak", href: "#contact" },
-    { name: "Login", href: "/user/auth", isRoute: true },
   ];
+
+  if (token && user) {
+    menuItems.push({
+      name: "Dashboard",
+      href: user.role === "admin" ? "/admin/dashboard" : "/user/dashboard",
+      isRoute: true,
+    });
+  } else {
+    menuItems.push({
+      name: "Login",
+      href: "/user/auth",
+      isRoute: true,
+    });
+  }
 
   const scrollToSection = (href: string) => {
     const element = document.querySelector(href);
@@ -78,7 +94,7 @@ export default function Navbar() {
                   transition={{ delay: index * 0.1 }}
                   onClick={() => handleMenuClick(item)}
                   className={`whitespace-nowrap text-sm font-semibold text-gray-700 transition-colors duration-300 hover:text-[#ff7a00] dark:text-gray-200 dark:hover:text-[#ff9a3d] lg:text-base ${
-                    item.name === 'Login' ? 'bg-[#ff7a00] text-white px-5 py-2.5 rounded-lg hover:bg-[#e96f00] dark:text-white' : ''
+                    ['Login', 'Dashboard'].includes(item.name) ? 'bg-[#ff7a00] text-white px-5 py-2.5 rounded-lg hover:bg-[#e96f00] dark:text-white' : ''
                   }`}
                 >
                   {item.name}

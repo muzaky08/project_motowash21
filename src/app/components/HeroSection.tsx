@@ -47,7 +47,7 @@ export default function HeroSection() {
           >
             Cuci Motor Premium
             <br />
-            <span className="text-[#ff7a00]"> Di Kota Chemyree</span>
+            <span className="text-[#ff7a00]"> Di Kota Serang</span>
           </motion.h1>
 
           <motion.p

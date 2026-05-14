@@ -13,31 +13,35 @@ import {
   Moon,
   Menu,
   X,
+  Home,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useTheme } from "../../contexts/ThemeContext";
 import { useAuth } from "../../contexts/AuthContext";
-import { chatService, notificationService } from "../../../services/api";
+import { chatService, notificationService, getAvatarUrl } from "../../../services/api";
 import { getSocket } from "../../../services/socket";
 import UserDashboardHome from "../../components/user/UserDashboardHome";
 import UserBookings from "../../components/user/UserBookings";
 import UserVouchers from "../../components/user/UserVouchers";
 import UserSettings from "../../components/user/UserSettings";
+import UserChat from "../../components/user/UserChat";
 import Logo from "../../components/Logo";
 import LogoutConfirmDialog from "../../components/user/LogoutConfirmDialog";
 
-type TabType = "dashboard" | "bookings" | "vouchers" | "settings";
+type TabType = "dashboard" | "bookings" | "vouchers" | "chat" | "settings";
 
 const USER_TAB_PATHS: Record<TabType, string> = {
   dashboard: "/user/dashboard",
   bookings: "/user/dashboard/bookings",
   vouchers: "/user/dashboard/vouchers",
+  chat: "/user/dashboard/chat",
   settings: "/user/dashboard/settings",
 };
 
 function getTabFromPath(pathname: string): TabType {
   if (pathname.includes("/bookings")) return "bookings";
   if (pathname.includes("/vouchers")) return "vouchers";
+  if (pathname.includes("/chat")) return "chat";
   if (pathname.includes("/settings")) return "settings";
   return "dashboard";
 }
@@ -61,6 +65,7 @@ export default function UserDashboard() {
       { id: "dashboard" as TabType, name: "Dashboard", icon: LayoutDashboard, path: USER_TAB_PATHS.dashboard },
       { id: "bookings" as TabType, name: "Booking Saya", icon: Calendar, path: USER_TAB_PATHS.bookings },
       { id: "vouchers" as TabType, name: "Voucher", icon: Ticket, path: USER_TAB_PATHS.vouchers },
+      { id: "chat" as TabType, name: "Chat", icon: MessageCircle, path: USER_TAB_PATHS.chat },
       { id: "settings" as TabType, name: "Pengaturan", icon: Settings, path: USER_TAB_PATHS.settings },
     ],
     [],
@@ -143,6 +148,26 @@ export default function UserDashboard() {
     }
   };
 
+  const handleNotificationClick = async (notification: any) => {
+    // Navigasi sesuai tipe notifikasi
+    if (notification.type === 'chat') {
+      navigate('/user/dashboard/chat');
+    } else if (notification.type === 'booking' || notification.type === 'transaction' || notification.title?.toLowerCase().includes('booking')) {
+      navigate('/user/dashboard/bookings');
+    } else if (notification.type === 'voucher' || notification.title?.toLowerCase().includes('voucher')) {
+      navigate('/user/dashboard/vouchers');
+    } else if (notification.title?.toLowerCase().includes('profil')) {
+      navigate('/user/dashboard/settings');
+    }
+
+    setIsNotificationsOpen(false); // Tutup dropdown notifikasi
+
+    // Tandai sebagai sudah dibaca jika belum
+    if (!notification.is_read) {
+      await markNotificationAsRead(notification.id);
+    }
+  };
+
   const markAllNotificationsAsRead = async () => {
     if (!token || unreadNotifications === 0) return;
     try {
@@ -157,8 +182,8 @@ export default function UserDashboard() {
   const handleConfirmLogout = async () => {
     setIsLoggingOut(true);
     try {
-      if (user?.avatar_url) {
-        sessionStorage.setItem("lastUserAvatar", user.avatar_url);
+      if (user?.email) {
+        localStorage.setItem("lastUserEmail", user.email);
       }
       logout();
       navigate("/user/auth");
@@ -218,39 +243,39 @@ export default function UserDashboard() {
         </button>
 
         {isNotificationsOpen && (
-          <div className="absolute right-0 top-12 z-50 w-[320px] max-w-[calc(100vw-2rem)] rounded-xl border border-border bg-card shadow-2xl overflow-hidden">
-            <div className="p-4 border-b border-border">
-              <div className="flex items-start justify-between gap-3">
+          <div className="absolute -right-2 top-12 z-50 w-72 max-w-[calc(100vw-2rem)] rounded-xl border border-border bg-card shadow-2xl overflow-hidden ring-1 ring-black/5">
+            <div className="p-3 border-b border-border bg-muted/30">
+              <div className="flex items-start justify-between gap-2">
                 <div>
-                  <p className="font-bold text-foreground">Notifikasi Terbaru</p>
-                  <p className="text-xs text-muted-foreground">{unreadNotifications} belum dibaca</p>
+                  <p className="text-xs font-bold text-foreground">Notifikasi</p>
+                  <p className="text-[10px] text-muted-foreground">{unreadNotifications} baru</p>
                 </div>
                 <button
                   type="button"
                   onClick={markAllNotificationsAsRead}
                   disabled={unreadNotifications === 0}
-                  className="text-xs font-semibold text-[#ff7a00] disabled:text-muted-foreground disabled:cursor-not-allowed"
+                  className="text-[10px] font-bold text-[#ff7a00] disabled:text-muted-foreground"
                 >
-                  Tandai semua dibaca
+                  Baca semua
                 </button>
               </div>
             </div>
-            <div className="max-h-80 overflow-y-auto">
+            <div className="max-h-72 overflow-y-auto">
               {notifications.length === 0 ? (
-                <div className="p-4 text-sm text-muted-foreground text-center">Belum ada notifikasi</div>
+                <div className="p-6 text-[11px] text-muted-foreground text-center">Tidak ada notifikasi</div>
               ) : (
                 notifications.map((notification) => (
                   <button
                     key={notification.id}
-                    onClick={() => markNotificationAsRead(notification.id)}
-                    className={`w-full p-4 text-left border-b border-border/60 hover:bg-muted transition-colors ${
-                      notification.is_read ? "opacity-70" : "bg-[#ff7a00]/5"
+                    onClick={() => handleNotificationClick(notification)}
+                    className={`w-full p-3 text-left border-b border-border/60 hover:bg-muted transition-colors ${
+                      notification.is_read ? "opacity-60" : "bg-[#ff7a00]/5"
                     }`}
                   >
-                    <p className="font-semibold text-sm text-foreground">{notification.title}</p>
-                    <p className="text-xs text-muted-foreground line-clamp-2 mt-1">{notification.message}</p>
-                    <p className="text-[11px] text-muted-foreground mt-2">
-                      {new Date(notification.created_at).toLocaleString("id-ID")}
+                    <p className="font-bold text-[11px] text-foreground">{notification.title}</p>
+                    <p className="text-[10px] text-muted-foreground line-clamp-2 mt-0.5">{notification.message}</p>
+                    <p className="text-[9px] text-muted-foreground/60 mt-1.5 flex justify-end">
+                      {new Date(notification.created_at).toLocaleTimeString("id-ID", { hour: '2-digit', minute: '2-digit' })}
                     </p>
                   </button>
                 ))
@@ -262,12 +287,28 @@ export default function UserDashboard() {
     </>
   );
 
+  if (activeTab === "chat") {
+    return (
+      <div className="h-screen w-full bg-background flex flex-col">
+        <UserChat onMessagesRead={loadHeaderCounts} standalone onBack={() => navigate('/user/dashboard')} />
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-background transition-colors duration-300 flex flex-col">
       <header className="bg-card border-b border-border sticky top-0 z-50">
         <div className="px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
-            <Logo variant="full" size="sm" />
+            <div className="flex items-center gap-4">
+              <Logo variant="full" size="sm" clickable onClick={() => navigate("/")} />
+              <button 
+                onClick={() => navigate("/")}
+                className="hidden sm:flex items-center gap-2 text-xs font-bold text-muted-foreground hover:text-foreground transition-colors bg-muted/50 px-3 py-1.5 rounded-lg border border-border"
+              >
+                <Home size={14} /> Beranda
+              </button>
+            </div>
 
             <div className="hidden md:flex items-center gap-3">
               <HeaderActions />
@@ -278,7 +319,7 @@ export default function UserDashboard() {
                   <p className="text-xs text-muted-foreground leading-tight capitalize">{user?.role}</p>
                 </div>
                 {user?.avatar_url ? (
-                  <img src={user.avatar_url} alt="Avatar" className="w-8 h-8 rounded-full object-cover border border-[#ff7a00]" />
+                  <img src={getAvatarUrl(user.avatar_url)} alt="Avatar" className="w-8 h-8 rounded-full object-cover border border-[#ff7a00]" />
                 ) : (
                   <div className="w-8 h-8 rounded-full bg-[#ff7a00] flex items-center justify-center text-white text-xs font-bold">
                     {user?.name?.charAt(0).toUpperCase()}
@@ -358,48 +399,27 @@ export default function UserDashboard() {
                   <span className="hidden sm:inline">{tab.name}</span>
                 </button>
               ))}
-              <button
-                onClick={() => navigate("/chat")}
-                className="relative flex items-center gap-2 px-4 sm:px-6 py-3 rounded-lg font-semibold transition-all text-sm sm:text-base bg-card text-muted-foreground hover:bg-muted border border-border"
-              >
-                <MessageCircle size={20} />
-                <span className="hidden sm:inline">Chat</span>
-                {unreadMessages > 0 && (
-                  <span className="absolute -top-2 -right-2 bg-red-600 text-white text-xs font-bold rounded-full w-6 h-6 flex items-center justify-center">
-                    {unreadMessages > 9 ? "9+" : unreadMessages}
-                  </span>
-                )}
-              </button>
             </div>
 
-            <div className="sm:hidden overflow-x-auto -mx-4 px-4">
-              <div className="flex gap-2 pb-2">
+            <div className="sm:hidden -mx-4">
+              <div 
+                className="flex items-center gap-2 overflow-x-auto px-4 pb-4 no-scrollbar touch-pan-x" 
+                style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+              >
                 {tabs.map((tab) => (
                   <button
                     key={tab.id}
                     onClick={() => navigate(tab.path)}
-                    className={`relative flex items-center gap-2 px-3 py-2 rounded-lg font-semibold transition-all text-sm whitespace-nowrap flex-shrink-0 ${
+                    className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold transition-all text-[11px] whitespace-nowrap flex-shrink-0 border select-none ${
                       activeTab === tab.id
-                        ? "bg-[#ff7a00] text-white shadow-lg"
-                        : "bg-card text-muted-foreground hover:bg-muted border border-border"
+                        ? "bg-[#ff7a00] text-white shadow-[0_4px_12px_rgba(255,122,0,0.3)] border-[#ff7a00]"
+                        : "bg-card text-muted-foreground hover:bg-muted border-border"
                     }`}
                   >
-                    <tab.icon size={18} />
-                    <span className="text-xs">{tab.name}</span>
+                    <tab.icon size={14} />
+                    <span>{tab.name}</span>
                   </button>
                 ))}
-                <button
-                  onClick={() => navigate("/chat")}
-                  className="relative flex items-center gap-2 px-3 py-2 rounded-lg font-semibold transition-all text-sm whitespace-nowrap flex-shrink-0 bg-card text-muted-foreground hover:bg-muted border border-border"
-                >
-                  <MessageCircle size={18} />
-                  <span className="text-xs">Chat</span>
-                  {unreadMessages > 0 && (
-                    <span className="absolute -top-2 -right-2 bg-red-600 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center">
-                      {unreadMessages > 9 ? "9+" : unreadMessages}
-                    </span>
-                  )}
-                </button>
               </div>
             </div>
           </div>

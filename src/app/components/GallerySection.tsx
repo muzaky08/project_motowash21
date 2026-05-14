@@ -1,35 +1,32 @@
+import { useState, useEffect } from "react";
 import { motion } from "motion/react";
 import { useInView } from "../hooks/useInView";
+import { galleryService } from "../../services/api";
 
-const galleryImages = [
-  {
-    url: "https://images.unsplash.com/photo-1763142185961-5a47a399e7a4?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxzcG9ydCUyMG1vdG9yY3ljbGUlMjBzaGluZXxlbnwxfHx8fDE3Nzc2MTc2MTV8MA&ixlib=rb-4.1.0&q=80&w=1080",
-    title: "Sport Bike Polish",
-  },
-  {
-    url: "https://images.unsplash.com/photo-1636761358756-ef34b4ef036a?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxtb3RvcmN5Y2xlJTIwcG9saXNoJTIwZGV0YWlsfGVufDF8fHx8MTc3NzYxNzYxNnww&ixlib=rb-4.1.0&q=80&w=1080",
-    title: "Detail Cleaning",
-  },
-  {
-    url: "https://images.unsplash.com/photo-1737636255601-179dc7535116?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxzY29vdGVyJTIwY2xlYW4lMjBtb2Rlcm58ZW58MXx8fHwxNzc3NjE3NjE2fDA&ixlib=rb-4.1.0&q=80&w=1080",
-    title: "Scooter Wash",
-  },
-  {
-    url: "https://images.unsplash.com/photo-1662227386163-d91d320198eb?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxtb3RvcmN5Y2xlJTIwd2FzaCUyMGRldGFpbGluZyUyMGJsYWNrfGVufDF8fHx8MTc3NzYxNzYxNXww&ixlib=rb-4.1.0&q=80&w=1080",
-    title: "Premium Detailing",
-  },
-  {
-    url: "https://images.unsplash.com/photo-1571568495363-99048b36777b?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxtb3RvcmN5Y2xlJTIwY2xlYW5pbmclMjBwcm9mZXNzaW9uYWx8ZW58MXx8fHwxNzc3NjE3NjE1fDA&ixlib=rb-4.1.0&q=80&w=1080",
-    title: "Professional Service",
-  },
-  {
-    url: "https://images.unsplash.com/photo-1636761358756-ef34b4ef036a?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxwcmVtaXVtJTIwbW90b3JjeWNsZSUyMGNhcmV8ZW58MXx8fHwxNzc3NjE3NjE2fDA&ixlib=rb-4.1.0&q=80&w=1080",
-    title: "Wax & Polish",
-  },
-];
+interface GalleryImage {
+  id: number;
+  url: string;
+  title: string;
+}
 
 export default function GallerySection() {
   const [ref, isInView] = useInView({ threshold: 0.1 });
+  const [images, setImages] = useState<GalleryImage[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchGallery = async () => {
+      try {
+        const data = await galleryService.getGallery();
+        setImages(data);
+      } catch (error) {
+        console.error("Error fetching gallery:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchGallery();
+  }, []);
 
   return (
     <section id="gallery" className="py-20 sm:py-32 bg-white dark:bg-[#111111] relative overflow-hidden transition-colors duration-300">
@@ -56,35 +53,46 @@ export default function GallerySection() {
         </motion.div>
 
         {/* Gallery Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          {galleryImages.map((image, index) => (
-            <motion.div
-              key={index}
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={isInView ? { opacity: 1, scale: 1 } : {}}
-              transition={{ delay: index * 0.1, duration: 0.6 }}
-              className="group relative overflow-hidden rounded-2xl aspect-square cursor-pointer"
-            >
-              {/* Image */}
-              <img
-                src={image.url}
-                alt={image.title}
-                className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
-              />
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 min-h-[400px]">
+          {isLoading ? (
+            // Loading State
+            Array.from({ length: 6 }).map((_, i) => (
+              <div key={i} className="aspect-square bg-gray-200 dark:bg-gray-800 rounded-2xl animate-pulse" />
+            ))
+          ) : images.length > 0 ? (
+            images.map((image, index) => (
+              <motion.div
+                key={image.id}
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={isInView ? { opacity: 1, scale: 1 } : {}}
+                transition={{ delay: index * 0.1, duration: 0.6 }}
+                className="group relative overflow-hidden rounded-2xl aspect-square cursor-pointer"
+              >
+                {/* Image */}
+                <img
+                  src={image.url}
+                  alt={image.title}
+                  className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+                />
 
-              {/* Overlay */}
-              <div className="absolute inset-0 bg-gradient-to-t from-gray-900 dark:from-[#111111] via-gray-900/40 dark:via-[#111111]/40 to-transparent opacity-60 group-hover:opacity-90 transition-opacity duration-300" />
+                {/* Overlay */}
+                <div className="absolute inset-0 bg-gradient-to-t from-gray-900 dark:from-[#111111] via-gray-900/40 dark:via-[#111111]/40 to-transparent opacity-60 group-hover:opacity-90 transition-opacity duration-300" />
 
-              {/* Title */}
-              <div className="absolute bottom-0 left-0 right-0 p-6 transform translate-y-2 group-hover:translate-y-0 transition-transform duration-300">
-                <h3 className="text-white font-bold text-xl mb-2">{image.title}</h3>
-                <div className="w-12 h-1 bg-[#ff7a00] rounded-full transform scale-0 group-hover:scale-100 transition-transform duration-300" />
-              </div>
+                {/* Title */}
+                <div className="absolute bottom-0 left-0 right-0 p-6 transform translate-y-2 group-hover:translate-y-0 transition-transform duration-300">
+                  <h3 className="text-white font-bold text-xl mb-2">{image.title}</h3>
+                  <div className="w-12 h-1 bg-[#ff7a00] rounded-full transform scale-0 group-hover:scale-100 transition-transform duration-300" />
+                </div>
 
-              {/* Hover Border Effect */}
-              <div className="absolute inset-0 border-2 border-[#ff7a00] opacity-0 group-hover:opacity-100 rounded-2xl transition-opacity duration-300" />
-            </motion.div>
-          ))}
+                {/* Hover Border Effect */}
+                <div className="absolute inset-0 border-2 border-[#ff7a00] opacity-0 group-hover:opacity-100 rounded-2xl transition-opacity duration-300" />
+              </motion.div>
+            ))
+          ) : (
+            <div className="col-span-full text-center py-20">
+              <p className="text-gray-500 dark:text-gray-400">Belum ada foto di galeri</p>
+            </div>
+          )}
         </div>
 
         {/* CTA */}

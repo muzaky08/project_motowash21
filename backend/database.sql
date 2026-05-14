@@ -38,7 +38,11 @@ CREATE TABLE messages (
   is_read BOOLEAN DEFAULT false,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   FOREIGN KEY (sender_id) REFERENCES users(id) ON DELETE CASCADE,
-  FOREIGN KEY (receiver_id) REFERENCES users(id) ON DELETE CASCADE
+  FOREIGN KEY (receiver_id) REFERENCES users(id) ON DELETE CASCADE,
+  INDEX idx_sender_receiver (sender_id, receiver_id),
+  INDEX idx_receiver_sender (receiver_id, sender_id),
+  INDEX idx_created_at (created_at),
+  INDEX idx_is_read (is_read)
 );
 
 -- 4. Table: vouchers
@@ -84,10 +88,21 @@ CREATE TABLE services (
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
+-- 7. Table: gallery
+CREATE TABLE gallery (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  url TEXT NOT NULL,
+  title VARCHAR(255) NOT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
 -- Sample Admin User (Password: admin123)
--- bcrypt hash for 'admin123' is '$2a$10$XmB0vPjN7VvPZ8j/X0vUuO1g0g.1g0g.1g0g.1g0g.1g0g.1g0g.1g0' - wait, I'll use a real one or just let them register.
--- Better to provide a script to hash or just a plain one if they want.
--- I'll use a hardcoded hash for 'admin123'.
+-- bcrypt hash for 'admin123' is '$2a$10$Rxu6c7731coBOGdGcJ1V..UQ8qI5D21kkh0MyciIXKOx6R5SxGXKa'
 INSERT INTO users (id, email, password, name, role) VALUES 
-('admin-uuid-1', 'admin@garasi21.com', '$2a$10$Rxu6c7731coBOGdGcJ1V..UQ8qI5D21kkh0MyciIXKOx6R5SxGXKa', 'Admin GARASI.21', 'admin');
--- Note: The above hash is just a placeholder, they should use the register endpoint or a script to create admin.
+('admin-uuid-1', 'admin@garasi21.com', '$2a$10$Rxu6c7731coBOGdGcJ1V..UQ8qI5D21kkh0MyciIXKOx6R5SxGXKa', 'Admin GARASI.21', 'admin')
+ON DUPLICATE KEY UPDATE id=id;
+
+-- Sample Gallery Data
+INSERT INTO gallery (url, title) VALUES 
+('https://images.unsplash.com/photo-1763142185961-5a47a399e7a4?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxzcG9ydCUyMG1vdG9yY3ljbGUlMjBzaGluZXxlbnwxfHx8fDE3Nzc2MTc2MTV8MA&ixlib=rb-4.1.0&q=80&w=1080', 'Sport Bike Polish'),
+('https://images.unsplash.com/photo-1636761358756-ef34b4ef036a?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxtb3RvcmN5Y2xlJTIwcG9saXNoJTIwZGV0YWlsfGVufDF8fHx8MTc3NzYxNzYxNnww&ixlib=rb-4.1.0&q=80&w=1080', 'Detail Cleaning');

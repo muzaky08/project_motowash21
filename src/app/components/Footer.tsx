@@ -21,7 +21,7 @@ export default function Footer() {
         {/* Bottom */}
         <div className="text-center">
           <p className="text-gray-600 dark:text-gray-500 text-sm flex items-center justify-center gap-2">
-            Made with <Heart className="text-[#ff7a00]" size={16} fill="#ff7a00" /> Di Kota Chemyree
+            Made with <Heart className="text-[#ff7a00]" size={16} fill="#ff7a00" /> Di Kota Serang
           </p>
           <p className="text-gray-500 dark:text-gray-600 text-xs mt-2">
             © 2026 GARASI.21 MOTOWASH. All rights reserved.

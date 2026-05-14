@@ -4,17 +4,27 @@ import { API_ORIGIN } from "./api";
 let socket: Socket | null = null;
 
 export function getSocket(token: string) {
-  if (socket?.connected && socket.auth?.token === token) {
-    return socket;
-  }
-
+  // If socket exists and has the same token, don't recreate it
   if (socket) {
+    const currentAuth = socket.auth as { token?: string };
+    if (currentAuth?.token === token) {
+      if (!socket.connected && !socket.active) {
+        socket.connect();
+      }
+      return socket;
+    }
+    // Only disconnect if token is actually different
     socket.disconnect();
   }
 
-  socket = io(API_ORIGIN, {
+  const socketUrl = import.meta.env.VITE_SOCKET_URL || import.meta.env.VITE_API_URL?.replace('/api', '') || 'http://localhost:5005';
+  
+  socket = io(socketUrl, {
     auth: { token },
     transports: ["websocket", "polling"],
+    reconnection: true,
+    reconnectionAttempts: 5,
+    reconnectionDelay: 1000,
   });
 
   return socket;
