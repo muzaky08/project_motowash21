@@ -273,7 +273,7 @@ export default function UserChat({
   }
 
   return (
-    <div className={`bg-card overflow-hidden flex transition-all duration-300 ${standalone ? 'h-full w-full' : 'border border-border rounded-2xl shadow-2xl h-[calc(100vh-12rem)] min-h-[500px] max-w-6xl mx-auto'}`}>
+    <div className={`bg-card overflow-hidden flex min-h-0 transition-all duration-300 ${standalone ? 'h-full w-full' : 'border border-border rounded-2xl shadow-2xl h-[calc(100dvh-12rem)] min-h-[500px] max-w-6xl mx-auto'}`}>
       {/* Sidebar - Conversation List */}
       {!standalone && (
         <div className={`
@@ -375,7 +375,7 @@ export default function UserChat({
       {/* Main Chat Area */}
       <div className={`
         ${(roomOpen || standalone) ? 'flex' : 'hidden sm:flex'} 
-        flex-1 flex-col bg-[#efeae2] dark:bg-[#0b141a] relative min-w-0
+        flex-1 flex-col bg-[#efeae2] dark:bg-[#0b141a] relative min-w-0 min-h-0
       `}>
         {(!roomOpen && !standalone) ? (
           // Empty State - WhatsApp style
@@ -397,38 +397,38 @@ export default function UserChat({
           // Active Chat Room
           <>
             {/* Room Header */}
-            <div className="h-16 px-4 flex items-center justify-between bg-card border-b border-border z-10 shadow-sm">
-              <div className="flex items-center gap-3 min-w-0">
+            <div className="h-16 sm:h-[68px] px-3 sm:px-4 flex items-center justify-between bg-card border-b border-border z-10 shadow-sm flex-shrink-0">
+              <div className="flex items-center gap-2.5 sm:gap-3 min-w-0 flex-1">
                 {(standalone && onBack) ? (
                   <button 
                     onClick={onBack} 
-                    className="p-2 -ml-2 hover:bg-muted rounded-full transition-colors"
+                    className="p-2 -ml-2 hover:bg-muted rounded-full transition-colors flex-shrink-0"
                   >
                     <ArrowLeft size={20} className="text-foreground" />
                   </button>
                 ) : !standalone && (
                   <button 
                     onClick={() => setRoomOpen(false)} 
-                    className="sm:hidden p-2 -ml-2 hover:bg-muted rounded-full transition-colors"
+                    className="sm:hidden p-2 -ml-2 hover:bg-muted rounded-full transition-colors flex-shrink-0"
                   >
                     <ArrowLeft size={20} className="text-foreground" />
                   </button>
                 )}
-                <div className="w-10 h-10 rounded-full bg-[#ff7a00] flex items-center justify-center text-white font-bold shadow-sm flex-shrink-0">
+                <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-full bg-[#ff7a00] flex items-center justify-center text-white font-bold shadow-sm flex-shrink-0">
                   A
                 </div>
-                <div className="min-w-0">
-                  <h3 className="font-bold text-sm text-foreground truncate">Admin GARASI.21</h3>
+                <div className="min-w-0 flex-1">
+                  <h3 className="font-bold text-sm sm:text-base text-foreground truncate">Admin GARASI.21</h3>
                   <p className="text-[10px] text-green-500 font-bold">
                     {isAdminTyping ? 'sedang mengetik...' : 'online'}
                   </p>
                 </div>
               </div>
-              <div className="flex items-center gap-2">
-                <button className="p-2 hover:bg-muted rounded-full transition-colors opacity-60">
+              <div className="flex items-center gap-0.5 sm:gap-2 flex-shrink-0">
+                <button className="hidden min-[390px]:flex p-2 hover:bg-muted rounded-full transition-colors opacity-60">
                   <Video size={18} />
                 </button>
-                <button className="p-2 hover:bg-muted rounded-full transition-colors opacity-60">
+                <button className="hidden min-[390px]:flex p-2 hover:bg-muted rounded-full transition-colors opacity-60">
                   <Phone size={18} />
                 </button>
                 <button className="p-2 hover:bg-muted rounded-full transition-colors">
@@ -441,7 +441,7 @@ export default function UserChat({
             </div>
 
             {/* Messages Area */}
-            <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-[url('https://user-images.githubusercontent.com/15075759/28719144-86dc0f70-73b1-11e7-911d-60d70fcded21.png')] bg-repeat dark:opacity-90">
+            <div className="flex-1 min-h-0 overflow-y-auto px-3 py-4 sm:p-4 space-y-3 bg-[url('https://user-images.githubusercontent.com/15075759/28719144-86dc0f70-73b1-11e7-911d-60d70fcded21.png')] bg-repeat dark:opacity-90">
               <div className="flex justify-center mb-6">
                 <span className="bg-muted/80 backdrop-blur-md px-3 py-1 rounded-lg text-[10px] font-black text-muted-foreground uppercase tracking-widest shadow-sm">
                   Hari Ini
@@ -459,7 +459,7 @@ export default function UserChat({
                       className={`flex ${isMine ? "justify-end" : "justify-start"}`}
                     >
                       <div className={`
-                        max-w-[80%] px-3 py-2 rounded-xl shadow-md relative
+                        max-w-[88%] sm:max-w-[80%] px-3 py-2 rounded-xl shadow-md relative
                         ${isMine 
                           ? "bg-[#d9fdd3] dark:bg-[#005c4b] rounded-tr-none text-[#111b21] dark:text-[#e9edef]" 
                           : msg.is_ai 
@@ -507,12 +507,12 @@ export default function UserChat({
             </div>
 
             {/* Quick Replies */}
-            <div className="bg-card w-full min-w-0 flex-shrink-0 px-4 pt-3 pb-2 overflow-x-auto no-scrollbar flex items-center gap-2 border-t border-border shadow-[0_-4px_10px_rgba(0,0,0,0.02)]">
+            <div className="bg-card w-full min-w-0 flex-shrink-0 px-3 sm:px-4 pt-2.5 pb-2 overflow-x-auto no-scrollbar flex items-center gap-2 border-t border-border shadow-[0_-4px_10px_rgba(0,0,0,0.02)]">
               {QUICK_REPLIES.map((text, i) => (
                 <button
                   key={i}
                   onClick={() => sendQuickReply(text)}
-                  className="whitespace-nowrap px-4 py-2 bg-muted text-xs font-bold text-muted-foreground rounded-full hover:bg-[#ff7a00]/10 hover:text-[#ff7a00] hover:border-[#ff7a00]/30 border border-border/50 transition-all shadow-sm flex items-center gap-1.5"
+                  className="whitespace-nowrap px-3.5 sm:px-4 py-2 bg-muted text-xs font-bold text-muted-foreground rounded-full hover:bg-[#ff7a00]/10 hover:text-[#ff7a00] hover:border-[#ff7a00]/30 border border-border/50 transition-all shadow-sm flex items-center gap-1.5"
                 >
                   <MessageSquare size={12} />
                   {text}
@@ -521,8 +521,8 @@ export default function UserChat({
             </div>
 
             {/* Input Area */}
-            <div className="p-3 bg-card border-t border-border flex items-center gap-2">
-              <div className="flex items-center">
+            <div className="px-2.5 sm:px-3 pt-2.5 pb-[calc(0.625rem+env(safe-area-inset-bottom))] bg-card border-t border-border flex items-center gap-2 flex-shrink-0">
+              <div className="hidden sm:flex items-center">
                 <button className="p-2 hover:bg-muted rounded-full transition-colors text-muted-foreground">
                   <Smile size={24} />
                 </button>
@@ -536,7 +536,7 @@ export default function UserChat({
                   value={newMessage}
                   onChange={(e) => handleTyping(e.target.value)}
                   placeholder="Ketik pesan"
-                  className="flex-1 bg-muted border-none rounded-xl py-2.5 px-4 text-sm text-foreground outline-none placeholder:text-muted-foreground focus:ring-1 focus:ring-[#ff7a00]/30 transition-all"
+                  className="min-w-0 flex-1 bg-muted border-none rounded-xl py-2.5 px-4 text-sm text-foreground outline-none placeholder:text-muted-foreground focus:ring-1 focus:ring-[#ff7a00]/30 transition-all"
                 />
                 <button
                   type="submit"

@@ -289,7 +289,7 @@ export default function UserDashboard() {
 
   if (activeTab === "chat") {
     return (
-      <div className="h-screen w-full bg-background flex flex-col">
+      <div className="h-[100dvh] w-full bg-background flex flex-col overflow-hidden">
         <UserChat onMessagesRead={loadHeaderCounts} standalone onBack={() => navigate('/user/dashboard')} />
       </div>
     );

@@ -2,6 +2,8 @@ import QRCode from 'qrcode';
 
 export async function downloadBookingCard(bookingData: {
   cardCode: string;
+  customerName?: string;
+  phone?: string;
   serviceName: string;
   date: string;
   time: string;
@@ -9,7 +11,7 @@ export async function downloadBookingCard(bookingData: {
 }) {
   const canvas = document.createElement('canvas');
   canvas.width = 600;
-  canvas.height = 780;
+  canvas.height = 860;
   const ctx = canvas.getContext('2d');
   if (!ctx) return;
 
@@ -41,9 +43,23 @@ export async function downloadBookingCard(bookingData: {
     ctx.closePath();
   }
 
+  function drawFittedText(text: string, x: number, y: number, maxWidth: number, font: string) {
+    ctx.font = font;
+    let value = text || '-';
+    if (ctx.measureText(value).width <= maxWidth) {
+      ctx.fillText(value, x, y);
+      return;
+    }
+
+    while (value.length > 1 && ctx.measureText(`${value}...`).width > maxWidth) {
+      value = value.slice(0, -1);
+    }
+    ctx.fillText(`${value}...`, x, y);
+  }
+
   // --- DRAW CARD BACKGROUND ---
   ctx.fillStyle = '#1a1a1a';
-  roundRect(ctx, 0, 0, 600, 780, 24);
+  roundRect(ctx, 0, 0, 600, 860, 24);
   ctx.fill();
 
   // --- DRAW ORANGE HEADER ---
@@ -125,33 +141,44 @@ export async function downloadBookingCard(bookingData: {
   ctx.textAlign = 'center';
   ctx.fillText(statusLabel, 490, 516);
 
-  // Row 2: Tanggal + Waktu
+  // Row 2: Customer
   ctx.textAlign = 'left';
   ctx.fillStyle = '#9ca3af';
   ctx.font = 'bold 12px Arial';
-  ctx.fillText('TANGGAL', 40, 585);
+  ctx.fillText('NAMA', 40, 585);
   ctx.fillStyle = '#ffffff';
-  ctx.font = 'bold 18px Arial';
-  ctx.fillText(bookingData.date, 40, 615);
+  drawFittedText(bookingData.customerName || '-', 40, 615, 320, 'bold 18px Arial');
 
   ctx.fillStyle = '#9ca3af';
   ctx.font = 'bold 12px Arial';
-  ctx.fillText('WAKTU', 420, 585);
+  ctx.fillText('NO. TELPON', 420, 585);
   ctx.fillStyle = '#ffffff';
-  ctx.font = 'bold 18px Arial';
-  ctx.fillText(bookingData.time, 420, 615);
+  drawFittedText(bookingData.phone || '-', 420, 615, 140, 'bold 18px Arial');
+
+  // Row 3: Tanggal + Waktu
+  ctx.fillStyle = '#9ca3af';
+  ctx.font = 'bold 12px Arial';
+  ctx.fillText('TANGGAL', 40, 665);
+  ctx.fillStyle = '#ffffff';
+  drawFittedText(bookingData.date, 40, 695, 180, 'bold 18px Arial');
+
+  ctx.fillStyle = '#9ca3af';
+  ctx.font = 'bold 12px Arial';
+  ctx.fillText('WAKTU', 420, 665);
+  ctx.fillStyle = '#ffffff';
+  drawFittedText(bookingData.time, 420, 695, 140, 'bold 18px Arial');
 
   // --- BOTTOM NOTE ---
   ctx.fillStyle = '#262626';
-  roundRect(ctx, 40, 670, 520, 50, 12);
+  roundRect(ctx, 40, 760, 520, 50, 12);
   ctx.fill();
   ctx.fillStyle = '#22c55e';
   ctx.font = 'bold 20px Arial';
   ctx.textAlign = 'left';
-  ctx.fillText('✓', 60, 702);
+  ctx.fillText('OK', 60, 792);
   ctx.fillStyle = '#9ca3af';
   ctx.font = '14px Arial';
-  ctx.fillText('Tunjukkan kartu kepada admin saat tiba di lokasi', 90, 700);
+  ctx.fillText('Tunjukkan kartu kepada admin saat tiba di lokasi', 95, 790);
 
   // --- DOWNLOAD ---
   const dataURL = canvas.toDataURL('image/png', 1.0);

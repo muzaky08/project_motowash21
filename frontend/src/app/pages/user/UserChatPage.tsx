@@ -7,7 +7,7 @@ export default function UserChatPage() {
   const navigate = useNavigate();
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="h-[100dvh] bg-background flex flex-col overflow-hidden">
       <header className="sticky top-0 z-40 bg-card border-b border-border">
         <div className="h-16 px-4 sm:px-6 lg:px-8 flex items-center justify-between">
           <Logo variant="full" size="sm" />
@@ -21,7 +21,7 @@ export default function UserChatPage() {
           </button>
         </div>
       </header>
-      <main className="px-4 sm:px-6 lg:px-8 py-6">
+      <main className="flex-1 min-h-0 p-0 sm:px-6 lg:px-8 sm:py-6">
         <UserChat onMessagesRead={() => undefined} standalone />
       </main>
     </div>

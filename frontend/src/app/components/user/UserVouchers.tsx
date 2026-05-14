@@ -55,6 +55,8 @@ export default function UserVouchers() {
       toast.info("Menyiapkan unduhan...");
       await downloadBookingCard({
         cardCode: card.card_code,
+        customerName: card.name,
+        phone: card.phone,
         serviceName: card.service,
         date: new Date(card.date).toLocaleDateString('id-ID'),
         time: card.time,
@@ -340,4 +342,3 @@ export default function UserVouchers() {
     </div>
   );
 }
-

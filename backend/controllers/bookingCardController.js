@@ -3,7 +3,7 @@ const db = require('../db/db');
 exports.getUserCards = async (req, res, next) => {
   try {
     const [rows] = await db.execute(
-      `SELECT bc.*, b.service, b.date, b.time 
+      `SELECT bc.*, b.service, b.date, b.time, b.name, b.phone
        FROM booking_cards bc
        JOIN bookings b ON bc.booking_id = b.id
        WHERE b.user_id = ?
