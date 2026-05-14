@@ -22,6 +22,8 @@ const pointsRoutes = require('./routes/pointsRoutes');
 const reviewRoutes = require('./routes/reviewRoutes');
 
 const app = express();
+app.set('trust proxy', 1);
+
 const server = http.createServer(app);
 initSocket(server);
 
