@@ -264,24 +264,24 @@ export default function AdminDashboard() {
       </button>
 
       {isNotificationsOpen && (
-        <div className="absolute right-0 top-12 z-50 w-[340px] max-w-[calc(100vw-2rem)] rounded-xl border border-border bg-card shadow-2xl overflow-hidden">
-          <div className="p-4 border-b border-border">
+        <div className="absolute -right-20 sm:right-0 top-11 sm:top-12 z-50 w-[292px] sm:w-[340px] max-w-[calc(100vw-0.75rem)] rounded-xl border border-border bg-card shadow-2xl overflow-hidden">
+          <div className="p-3 sm:p-4 border-b border-border">
             <div className="flex items-start justify-between gap-3">
-              <div>
-                <p className="font-bold text-foreground">Informasi Terbaru</p>
-                <p className="text-xs text-muted-foreground">{unreadAdminNotifications} belum dibaca</p>
+              <div className="min-w-0">
+                <p className="font-bold text-sm sm:text-base text-foreground truncate">Informasi Terbaru</p>
+                <p className="text-[11px] sm:text-xs text-muted-foreground">{unreadAdminNotifications} belum dibaca</p>
               </div>
               <button
                 type="button"
                 onClick={markAllAdminNotificationsAsRead}
                 disabled={unreadAdminNotifications === 0}
-                className="text-xs font-semibold text-[#ff7a00] disabled:text-muted-foreground disabled:cursor-not-allowed"
+                className="text-[11px] sm:text-xs font-semibold text-[#ff7a00] disabled:text-muted-foreground disabled:cursor-not-allowed whitespace-nowrap"
               >
-                Tandai semua dibaca
+                Tandai dibaca
               </button>
             </div>
           </div>
-          <div className="max-h-80 overflow-y-auto">
+          <div className="max-h-64 sm:max-h-80 overflow-y-auto">
             {adminNotifications.length === 0 ? (
               <div className="p-4 text-sm text-muted-foreground text-center">Belum ada informasi terbaru</div>
             ) : (
@@ -294,22 +294,22 @@ export default function AdminDashboard() {
                     navigate(notification.path);
                     setIsNotificationsOpen(false);
                   }}
-                  className={`w-full p-4 text-left border-b border-border/60 hover:bg-muted transition-colors ${
+                  className={`w-full p-3 sm:p-4 text-left border-b border-border/60 hover:bg-muted transition-colors ${
                     notification.unread ? "bg-[#ff7a00]/5" : ""
                   }`}
                 >
-                  <div className="flex items-start gap-3">
-                    <div className="w-9 h-9 rounded-lg bg-muted flex items-center justify-center flex-shrink-0">
+                  <div className="flex items-start gap-2.5 sm:gap-3">
+                    <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-lg bg-muted flex items-center justify-center flex-shrink-0">
                       {notification.type === "chat" ? (
-                        <MessageCircle size={17} className="text-[#ff7a00]" />
+                        <MessageCircle size={16} className="text-[#ff7a00]" />
                       ) : (
-                        <Calendar size={17} className="text-[#ff7a00]" />
+                        <Calendar size={16} className="text-[#ff7a00]" />
                       )}
                     </div>
                     <div className="min-w-0">
-                      <p className="font-semibold text-sm text-foreground">{notification.title}</p>
-                      <p className="text-xs text-muted-foreground line-clamp-2 mt-1">{notification.message}</p>
-                      <p className="text-[11px] text-muted-foreground mt-2">
+                      <p className="font-semibold text-xs sm:text-sm text-foreground truncate">{notification.title}</p>
+                      <p className="text-[11px] sm:text-xs text-muted-foreground line-clamp-2 mt-1">{notification.message}</p>
+                      <p className="text-[10px] sm:text-[11px] text-muted-foreground mt-1.5 sm:mt-2">
                         {new Date(notification.created_at).toLocaleString("id-ID")}
                       </p>
                     </div>

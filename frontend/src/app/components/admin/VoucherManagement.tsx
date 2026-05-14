@@ -198,25 +198,25 @@ export default function VoucherManagement() {
   }
 
   return (
-    <div className="space-y-8">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <div className="flex p-1 bg-muted rounded-2xl border border-border">
+    <div className="space-y-5 sm:space-y-8">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-4">
+        <div className="flex w-full sm:w-auto p-1 bg-muted rounded-2xl border border-border">
           <button
             onClick={() => setActiveTab("manage")}
-            className={`flex items-center gap-2 px-6 py-3 rounded-xl text-sm font-bold transition-all ${
+            className={`flex flex-1 sm:flex-none items-center justify-center gap-2 px-3 sm:px-5 py-2.5 sm:py-3 rounded-xl text-xs sm:text-sm font-bold transition-all ${
               activeTab === "manage" ? "bg-[#ff7a00] text-white shadow-lg" : "text-muted-foreground hover:text-foreground"
             }`}
           >
-            <Ticket size={18} />
+            <Ticket size={16} />
             Kelola Voucher
           </button>
           <button
             onClick={() => setActiveTab("validate")}
-            className={`flex items-center gap-2 px-6 py-3 rounded-xl text-sm font-bold transition-all ${
+            className={`flex flex-1 sm:flex-none items-center justify-center gap-2 px-3 sm:px-5 py-2.5 sm:py-3 rounded-xl text-xs sm:text-sm font-bold transition-all ${
               activeTab === "validate" ? "bg-[#ff7a00] text-white shadow-lg" : "text-muted-foreground hover:text-foreground"
             }`}
           >
-            <QrCode size={18} />
+            <QrCode size={16} />
             Validasi Booking
           </button>
         </div>
@@ -228,9 +228,9 @@ export default function VoucherManagement() {
               setEditingId(null);
               setShowForm(true);
             }}
-            className="flex items-center gap-2 bg-[#ff7a00] hover:bg-[#ff7a00]/90 text-white px-6 py-3 rounded-xl font-bold transition-all shadow-lg shadow-[#ff7a00]/20"
+            className="inline-flex items-center justify-center gap-2 bg-[#ff7a00] hover:bg-[#ff7a00]/90 text-white px-4 sm:px-6 py-2.5 sm:py-3 rounded-xl text-sm sm:text-base font-bold transition-all shadow-lg shadow-[#ff7a00]/20"
           >
-            <Plus size={20} />
+            <Plus size={18} />
             Tambah Voucher
           </button>
         )}
@@ -314,28 +314,28 @@ export default function VoucherManagement() {
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -10 }}
-            className="grid lg:grid-cols-3 gap-8"
+            className="grid lg:grid-cols-3 gap-5 sm:gap-8"
           >
             <div className="lg:col-span-2 space-y-6">
-              <div className="bg-card border border-border rounded-3xl p-8 shadow-sm">
-                <h3 className="text-xl font-bold mb-6">Input Kode Booking</h3>
-                <form onSubmit={handleValidate} className="flex gap-4 mb-8">
-                  <div className="relative flex-1">
-                    <QrCode className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground" size={20} />
+              <div className="bg-card border border-border rounded-2xl sm:rounded-3xl p-4 sm:p-8 shadow-sm">
+                <h3 className="text-lg sm:text-xl font-bold mb-4 sm:mb-6">Input Kode Booking</h3>
+                <form onSubmit={handleValidate} className="grid grid-cols-[minmax(0,1fr)_auto] gap-2.5 sm:gap-4 mb-6 sm:mb-8">
+                  <div className="relative min-w-0">
+                    <QrCode className="absolute left-3 sm:left-4 top-1/2 -translate-y-1/2 text-muted-foreground" size={17} />
                     <input
                       type="text"
                       value={validateCode}
                       onChange={(e) => setValidateCode(e.target.value.toUpperCase())}
                       placeholder="Masukkan Kode (Contoh: GRS-2025-XXXXXX)"
-                      className="w-full bg-muted border border-border rounded-2xl pl-12 pr-4 py-4 font-mono font-bold text-foreground focus:border-[#ff7a00] outline-none transition-all"
+                      className="w-full min-w-0 bg-muted border border-border rounded-xl sm:rounded-2xl pl-9 sm:pl-12 pr-3 sm:pr-4 py-3 sm:py-4 font-mono font-bold text-sm sm:text-base text-foreground focus:border-[#ff7a00] outline-none transition-all"
                     />
                   </div>
                   <button
                     type="submit"
                     disabled={isValidating || !validateCode}
-                    className="bg-[#ff7a00] hover:bg-[#ff7a00]/90 text-white px-8 py-4 rounded-2xl font-bold shadow-lg shadow-[#ff7a00]/20 disabled:opacity-50 transition-all flex items-center gap-2"
+                    className="bg-[#ff7a00] hover:bg-[#ff7a00]/90 text-white px-4 sm:px-8 py-3 sm:py-4 rounded-xl sm:rounded-2xl text-sm sm:text-base font-bold shadow-lg shadow-[#ff7a00]/20 disabled:opacity-50 transition-all inline-flex items-center justify-center gap-2"
                   >
-                    {isValidating && <RefreshCw size={18} className="animate-spin" />}
+                    {isValidating && <RefreshCw size={16} className="animate-spin" />}
                     Validasi
                   </button>
                 </form>
@@ -426,13 +426,13 @@ export default function VoucherManagement() {
             </div>
 
             <div className="space-y-6">
-              <div className="bg-card border border-border rounded-3xl p-6 shadow-sm">
-                <div className="flex items-center gap-2 mb-6">
-                  <History size={20} className="text-[#ff7a00]" />
-                  <h3 className="text-lg font-bold">Validasi Terbaru</h3>
+              <div className="bg-card border border-border rounded-2xl sm:rounded-3xl p-4 sm:p-6 shadow-sm">
+                <div className="flex items-center gap-2 mb-5 sm:mb-6">
+                  <History size={18} className="text-[#ff7a00]" />
+                  <h3 className="text-base sm:text-lg font-bold">Validasi Terbaru</h3>
                 </div>
                 {recentValidations.length === 0 ? (
-                  <div className="py-12 text-center">
+                  <div className="py-8 sm:py-12 text-center">
                     <p className="text-muted-foreground text-sm italic">Belum ada validasi hari ini</p>
                   </div>
                 ) : (
