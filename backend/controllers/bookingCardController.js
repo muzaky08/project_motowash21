@@ -62,24 +62,30 @@ exports.validateBookingCard = async (req, res, next) => {
       return res.status(400).json({ success: false, message: 'Kartu sudah kedaluwarsa' });
     }
 
-    // 1. Update card status
+    // 1. Update card status and mark the related booking as completed.
     await db.execute(
       'UPDATE booking_cards SET status = "validated", validated_at = NOW(), validated_by = ? WHERE id = ?',
       [admin_id, card.id]
     );
+    await db.execute('UPDATE bookings SET status = "Selesai" WHERE id = ?', [card.booking_id]);
 
-    // 2. Add points (20 points)
-    const points = 20;
-    await db.execute(
-      'INSERT INTO loyalty_points (user_id, booking_id, points, reason) VALUES (?, ?, ?, ?)',
-      [card.user_id, card.booking_id, points, 'booking_complete']
+    // 2. Add completion points once.
+    const points = 10;
+    const [existing] = await db.execute(
+      'SELECT id FROM loyalty_points WHERE user_id = ? AND booking_id = ? AND reason = ?',
+      [card.user_id, card.booking_id, 'service_complete']
     );
 
-    // 3. Update user total points
-    await db.execute(
-      'UPDATE users SET total_points = total_points + ? WHERE id = ?',
-      [points, card.user_id]
-    );
+    if (existing.length === 0) {
+      await db.execute(
+        'INSERT INTO loyalty_points (user_id, booking_id, points, reason) VALUES (?, ?, ?, ?)',
+        [card.user_id, card.booking_id, points, 'service_complete']
+      );
+      await db.execute(
+        'UPDATE users SET total_points = total_points + ? WHERE id = ?',
+        [points, card.user_id]
+      );
+    }
 
     res.json({ 
       success: true, 

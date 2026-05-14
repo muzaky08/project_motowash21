@@ -92,7 +92,7 @@ export default function UserDashboard() {
     const handleNewNotification = (notification: any) => {
       setNotifications((prev) => [{ ...notification, is_read: false }, ...prev].slice(0, 8));
       setUnreadNotifications((count) => count + 1);
-      toast.info(notification.title || "Notifikasi baru");
+      toast.info(notification.message || notification.title || "Notifikasi baru");
     };
     const handleNewMessage = (message: any) => {
       if (message.receiver_id !== user?.id) return;

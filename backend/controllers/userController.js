@@ -3,6 +3,7 @@ const { v4: uuidv4 } = require('uuid');
 const { getIO } = require('../socket');
 const path = require('path');
 const fs = require('fs');
+const { uploadDir } = require('../config/uploadPaths');
 
 exports.updateProfile = async (req, res, next) => {
   const { name, phone, location, avatar_url } = req.body;
@@ -47,7 +48,7 @@ exports.uploadAvatar = async (req, res, next) => {
     const [users] = await db.execute('SELECT avatar_url FROM users WHERE id = ?', [req.user.id]);
     const oldAvatar = users[0]?.avatar_url;
     if (oldAvatar && oldAvatar.startsWith('/uploads/')) {
-      const oldPath = path.join(__dirname, '..', oldAvatar);
+      const oldPath = path.join(uploadDir, path.basename(oldAvatar));
       if (fs.existsSync(oldPath)) {
         fs.unlinkSync(oldPath);
       }

@@ -30,21 +30,7 @@ exports.createBooking = async (req, res, next) => {
       [id, card_code]
     );
 
-    // 4. Check if first booking ever (add 50 points)
-    const [prevBookings] = await db.execute('SELECT id FROM bookings WHERE user_id = ? AND id != ?', [user_id, id]);
-    if (prevBookings.length === 0) {
-      const bonusPoints = 50;
-      await db.execute(
-        'INSERT INTO loyalty_points (user_id, booking_id, points, reason) VALUES (?, ?, ?, ?)',
-        [user_id, id, bonusPoints, 'first_booking']
-      );
-      await db.execute(
-        'UPDATE users SET total_points = total_points + ? WHERE id = ?',
-        [bonusPoints, user_id]
-      );
-    }
-
-    // 5. Create notification
+    // 4. Create notification. Loyalty points are awarded only after completion/review.
     const notifId = uuidv4();
     await db.execute(
       'INSERT INTO notifications (id, user_id, title, message, type) VALUES (?, ?, ?, ?, ?)',
@@ -136,7 +122,7 @@ exports.updateBookingStatus = async (req, res, next) => {
       const notifId = uuidv4();
 
       if (status === 'Selesai') {
-        // 1. Add loyalty points (10 points per service)
+        // 1. Add loyalty points once when service is completed.
         const [existing] = await db.execute(
           'SELECT id FROM loyalty_points WHERE user_id = ? AND booking_id = ? AND reason = ?',
           [user_id, id, 'service_complete']
@@ -162,9 +148,16 @@ exports.updateBookingStatus = async (req, res, next) => {
       }
 
       // Create notification
+      const title = status === 'Selesai'
+        ? 'Booking Selesai - +10 Poin'
+        : 'Status Booking Diperbarui';
+      const message = status === 'Selesai'
+        ? `Layanan ${service} sudah selesai. Anda mendapatkan 10 poin. Beri rating untuk mendapatkan 10 poin tambahan.`
+        : `Status booking ${service} Anda sekarang: ${status}`;
+
       await db.execute(
         'INSERT INTO notifications (id, user_id, title, message, type) VALUES (?, ?, ?, ?, ?)',
-        [notifId, user_id, 'Status Booking Diperbarui', `Status booking ${service} Anda sekarang: ${status}`, 'booking']
+        [notifId, user_id, title, message, 'booking']
       );
 
       const io = getIO();
@@ -173,8 +166,8 @@ exports.updateBookingStatus = async (req, res, next) => {
         io.to('admins').emit('booking:updated', { id, status, service });
         io.to(user_id).emit('notification:new', {
           id: notifId,
-          title: 'Status Booking Diperbarui',
-          message: `Status booking ${service} Anda sekarang: ${status}`,
+          title,
+          message,
           type: 'booking',
           is_read: false,
           created_at: new Date(),

@@ -75,7 +75,7 @@ export default function ReviewModal({ isOpen, onClose, booking, token, onSuccess
               <p className="text-muted-foreground text-sm">
                 Bagaimana pengalaman Anda dengan layanan {booking.service}?
                 <br />
-                <span className="text-[#ff7a00] font-bold">Yuk review kami, untuk mendapatkan 20 poin loyalitas tambahan!</span>
+                <span className="text-[#ff7a00] font-bold">Yuk review kami, untuk mendapatkan 10 poin loyalitas tambahan!</span>
               </p>
             </div>
 
