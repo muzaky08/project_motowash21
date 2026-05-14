@@ -55,10 +55,13 @@ app.use('/api/booking-cards', bookingCardRoutes);
 app.use('/api/points', pointsRoutes);
 app.use('/api/reviews', reviewRoutes);
 
-// Root endpoint
-app.get('/', (req, res) => {
-  res.json({ message: 'Welcome to Motowash API' });
-});
+// Root endpoint for local/API-only runtimes. In production Node hosting,
+// the root path is handled by the frontend build below.
+if (process.env.NODE_ENV !== 'production' || process.env.VERCEL) {
+  app.get('/', (req, res) => {
+    res.json({ message: 'Welcome to Motowash API' });
+  });
+}
 
 // Health check endpoint
 app.get('/health', async (req, res) => {
