@@ -264,7 +264,7 @@ export default function AdminDashboard() {
       </button>
 
       {isNotificationsOpen && (
-        <div className="absolute -right-20 sm:right-0 top-11 sm:top-12 z-50 w-[292px] sm:w-[340px] max-w-[calc(100vw-0.75rem)] rounded-xl border border-border bg-card shadow-2xl overflow-hidden">
+        <div className="fixed left-1/2 top-[8.25rem] z-50 w-[292px] max-w-[calc(100vw-1rem)] -translate-x-1/2 rounded-xl border border-border bg-card shadow-2xl overflow-hidden sm:absolute sm:left-auto sm:right-0 sm:top-12 sm:w-[340px] sm:translate-x-0">
           <div className="p-3 sm:p-4 border-b border-border">
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
