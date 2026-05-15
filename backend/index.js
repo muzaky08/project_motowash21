@@ -4,7 +4,7 @@ const cors = require('cors');
 const helmet = require('helmet');
 const path = require('path');
 const { uploadDir } = require('./config/uploadPaths');
-require('dotenv').config({ path: path.join(__dirname, '.env') });
+require('dotenv').config({ path: path.join(__dirname, '.env'), override: true });
 require('dotenv').config();
 const errorHandler = require('./middleware/errorHandler');
 const { initSocket } = require('./socket');
