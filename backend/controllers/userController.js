@@ -6,11 +6,11 @@ const fs = require('fs');
 const { uploadDir } = require('../config/uploadPaths');
 
 exports.updateProfile = async (req, res, next) => {
-  const { name, phone, location, avatar_url } = req.body;
+  const { name, phone, location } = req.body;
   try {
     await db.execute(
-      'UPDATE users SET name = ?, phone = ?, location = ?, avatar_url = ?, updated_at = NOW() WHERE id = ?',
-      [name, phone, location, avatar_url, req.user.id]
+      'UPDATE users SET name = ?, phone = ?, location = ?, updated_at = NOW() WHERE id = ?',
+      [name, phone, location, req.user.id]
     );
 
     const notifId = uuidv4();
@@ -21,7 +21,7 @@ exports.updateProfile = async (req, res, next) => {
 
     const io = getIO();
     if (io) {
-      io.to(req.user.id).emit('profile:updated', { name, phone, location, avatar_url });
+      io.to(req.user.id).emit('profile:updated', { name, phone, location });
       io.to(req.user.id).emit('notification:new', {
         id: notifId,
         title: 'Profil Diperbarui',

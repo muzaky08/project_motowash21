@@ -72,8 +72,9 @@ export default function UserSettings({ hideTitle = false }: { hideTitle?: boolea
     if (!token) return;
 
     try {
-      await userService.updateProfile(profile, token);
-      updateUser(profile);
+      const { avatar_url, ...profilePayload } = profile;
+      await userService.updateProfile(profilePayload, token);
+      updateUser(profilePayload);
       toast.success("Profil berhasil diperbarui!");
     } catch (error: any) {
       toast.error(error.message || "Gagal memperbarui profil");
