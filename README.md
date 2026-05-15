@@ -60,4 +60,16 @@ Contoh konfigurasi tersedia di:
 - `frontend/.env.example`
 - `backend/.env.example`
 
-File `.env` asli tetap diabaikan Git dan tidak sebaiknya dipublish.
+Salin file contoh sesuai kebutuhan:
+
+```bash
+cp frontend/.env.example frontend/.env
+cp backend/.env.example backend/.env
+```
+
+Untuk production di Hostinger, pastikan nilai berikut disesuaikan:
+
+- `backend/.env`: database, `JWT_SECRET`, `CORS_ORIGIN`, `GOOGLE_GEMINI_API_KEY`, dan `UPLOAD_DIR` jika ingin memakai folder upload khusus.
+- `frontend/.env`: `VITE_API_URL` dan `VITE_SOCKET_URL` sesuai domain production.
+
+File `.env` asli tetap diabaikan Git dan tidak boleh dipublish.
