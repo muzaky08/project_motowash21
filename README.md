@@ -31,6 +31,14 @@ Build frontend:
 npm run build
 ```
 
+Jalankan mode production Node hosting seperti Hostinger:
+
+```bash
+npm start
+```
+
+Entry point production ada di `server.js`, yang menjalankan backend Express dan menyajikan hasil build frontend dari `frontend/dist`.
+
 ## Database
 
 Schema penuh ada di:

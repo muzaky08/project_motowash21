@@ -60,7 +60,7 @@ app.use('/api/reviews', reviewRoutes);
 
 // Root endpoint for local/API-only runtimes. In production Node hosting,
 // the root path is handled by the frontend build below.
-if (process.env.NODE_ENV !== 'production' || process.env.VERCEL) {
+if (process.env.NODE_ENV !== 'production') {
   app.get('/', (req, res) => {
     res.json({ message: 'Welcome to Motowash API' });
   });
@@ -79,8 +79,8 @@ app.get('/health', async (req, res) => {
 });
 
 // Serve the frontend build when the backend runs as a normal Node server
-// on hosts such as Hostinger. Vercel serves frontend assets separately.
-if (process.env.NODE_ENV === 'production' && !process.env.VERCEL) {
+// on hosts such as Hostinger.
+if (process.env.NODE_ENV === 'production') {
   const frontendDistPath = path.join(__dirname, '..', 'frontend', 'dist');
   app.use(express.static(frontendDistPath));
   app.get(/^(?!\/api).*/, (req, res) => {
@@ -92,19 +92,17 @@ if (process.env.NODE_ENV === 'production' && !process.env.VERCEL) {
 app.use(errorHandler);
 
 const PORT = process.env.PORT || 5005;
-if (!process.env.VERCEL) {
-  server.listen(PORT, () => {
-    console.log(`Server running on port ${PORT}`);
-  });
+server.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
+});
 
-  // Graceful shutdown handlers to prevent EADDRINUSE during nodemon restart
-  const gracefulShutdown = () => {
-    console.log('Shutting down immediately to release port...');
-    process.exit(0);
-  };
-  process.once('SIGUSR2', gracefulShutdown); // Nodemon restart
-  process.once('SIGINT', gracefulShutdown);  // Ctrl+C
-  process.once('SIGTERM', gracefulShutdown); // OS termination
-}
+// Graceful shutdown handlers to prevent EADDRINUSE during nodemon restart
+const gracefulShutdown = () => {
+  console.log('Shutting down immediately to release port...');
+  process.exit(0);
+};
+process.once('SIGUSR2', gracefulShutdown); // Nodemon restart
+process.once('SIGINT', gracefulShutdown);  // Ctrl+C
+process.once('SIGTERM', gracefulShutdown); // OS termination
 
 module.exports = app;
