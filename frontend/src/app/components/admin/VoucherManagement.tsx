@@ -109,8 +109,8 @@ export default function VoucherManagement() {
     if (!confirm("Yakin ingin menghapus voucher ini? Tindakan ini tidak dapat dibatalkan.")) return;
     try {
       await voucherService.deactivateVoucher(Number(id), token);
+      setVouchers((prev) => prev.filter((voucher) => String(voucher.id) !== String(id)));
       toast.success("Voucher berhasil dihapus");
-      loadVouchers();
     } catch (error: any) {
       toast.error(error.message || "Gagal menghapus voucher");
     }

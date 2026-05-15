@@ -110,8 +110,13 @@ exports.deactivateVoucher = async (req, res, next) => {
   const { id } = req.params;
 
   try {
-    await db.execute('UPDATE vouchers SET is_active = false WHERE id = ?', [id]);
-    res.json({ success: true, message: 'Voucher berhasil dinonaktifkan' });
+    const [result] = await db.execute('DELETE FROM vouchers WHERE id = ?', [id]);
+
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ success: false, message: 'Voucher tidak ditemukan' });
+    }
+
+    res.json({ success: true, message: 'Voucher berhasil dihapus' });
   } catch (err) {
     next(err);
   }
